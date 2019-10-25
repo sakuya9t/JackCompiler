@@ -1,6 +1,6 @@
 import unittest
 
-from default.JackTokenizer import JackTokenizer, Token
+from JackTokenizer import JackTokenizer, Token
 
 
 class TokenizerTest(unittest.TestCase):

@@ -1,5 +1,5 @@
-from default import FileHandler
-from default.JackTokenizer import Token, JackTokenizer
+import FileHandler
+from JackTokenizer import JackTokenizer
 
 TOKEN_KEYWORD = 'keyword'
 TOKEN_SYMBOL = 'symbol'

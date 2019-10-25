@@ -1,8 +1,8 @@
 import unittest
 import os
 
-from default.CompilationEngine import TOKEN_KEYWORD, TOKEN_IDENTIFIER, TOKEN_SYMBOL, CompilationEngine, match_bracket
-from default.JackTokenizer import Token
+from CompilationEngine import TOKEN_KEYWORD, TOKEN_IDENTIFIER, TOKEN_SYMBOL, CompilationEngine, match_bracket
+from JackTokenizer import Token
 
 FILE_ARRAY_MAIN = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/projects/10/ArrayTest/Main.jack'
 FILE_SQUARE_MAIN = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/projects/10/Square/Main.jack'
