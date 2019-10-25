@@ -42,6 +42,14 @@ class CompilerTest(unittest.TestCase):
         node = compiler.compileParameterList(13, 12)
         self.assertEqual(len(node.children), 0)
 
+    def test_varDec(self):
+        compiler = CompilationEngine(FILE_ARRAY_MAIN)
+        self.assertTrue(compiler.isVarDec(9, 12))
+        self.assertTrue(compiler.isVarDec(13, 16))
+        self.assertFalse(compiler.isVarDec(9, 16))
+        node = compiler.compileVarDec(9, 12)
+        self.assertEqual(len(node.children), 4)
+
 
 def _read_tokens(filename, start, end):
     with open(filename, 'r') as file:

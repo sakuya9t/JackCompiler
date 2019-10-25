@@ -124,9 +124,23 @@ class CompilationEngine:
         node = Node('subroutineBody', None)
         return node
 
+    def isVarDec(self, start, end):
+        if self._token_value(start) != 'var':
+            return False
+        index = start
+        while index < end:
+            if self._token_value(index) == ';':
+                return False
+            index += 1
+        return self._token_value(end) == ';'
 
-    def compileVarDec(self):
-        pass
+    def compileVarDec(self, start, end):
+        node = Node('varDec', None)
+        curr = start
+        while curr <= end:
+            node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))
+            curr += 1
+        return node
 
     def compileStatements(self):
         pass
