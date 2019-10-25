@@ -169,8 +169,7 @@ class CompilationEngine:
         node.children.append(self.compileExpressionList(curr + 1, self.parenthesis[curr] - 1))
         curr = self.parenthesis[curr]
         node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))  # )
-        curr += 1
-        node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))  # ;
+        node.children.append(Node(self.tokens[end].type, self.tokens[end].value))  # ;
         return node
 
     def compileLet(self):
