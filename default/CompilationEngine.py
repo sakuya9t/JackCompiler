@@ -142,7 +142,33 @@ class CompilationEngine:
         return node
 
     def compileStatements(self, start, end):
-        return Node('statements', None)
+        node = Node('statements', None)
+        slow = start
+        fast = start
+        while slow <= end:
+            if self.isIf(slow, fast):
+                node.children.append(self.compileIf(slow, fast))
+                slow = fast + 1
+                fast = fast + 1
+            elif self.isLet(slow, fast):
+                node.children.append(self.compileLet(slow, fast))
+                slow = fast + 1
+                fast = fast + 1
+            elif self.isWhile(slow, fast):
+                node.children.append(self.compileWhile(slow, fast))
+                slow = fast + 1
+                fast = fast + 1
+            elif self.isDo(slow, fast):
+                node.children.append(self.compileDo(slow, fast))
+                slow = fast + 1
+                fast = fast + 1
+            elif self.isReturn(slow, fast):
+                node.children.append(self.compileReturn(slow, fast))
+                slow = fast + 1
+                fast = fast + 1
+            else:
+                fast += 1
+        return node
 
     def isDo(self, start, end):
         if self._token_value(start) != 'do' or self._token_value(end) != ';':

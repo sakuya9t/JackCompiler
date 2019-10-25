@@ -111,6 +111,13 @@ class CompilerTest(unittest.TestCase):
         node = compiler.compileWhile(48, 75)
         self.assertEqual(len(node.children), 7)
 
+    def test_statements(self):
+        compiler = CompilationEngine(FILE_ARRAY_MAIN)
+        node = compiler.compileStatements(23, 137)
+        self.assertEqual(len(node.children), 11)
+        node = compiler.compileStatements(55, 74)
+        self.assertEqual(len(node.children), 2)
+
 
 def _read_tokens(filename, start, end):
     with open(filename, 'r') as file:
