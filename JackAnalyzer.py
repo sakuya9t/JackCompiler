@@ -1,15 +1,16 @@
 from CompilationEngine import CompilationEngine
 import sys
+import os
 
 
 class JackAnalyzer:
-    def __init__(self, filename):
-        ext = filename[-5:]
-        if ext != '.jack':
-            raise TypeError('Should input a .jack file')
-        compiler = CompilationEngine(filename)
-        output_name = filename[:-5] + '.xml'
-        compiler.compile().to_file(output_name)
+    def __init__(self, path):
+        filenames = os.listdir(path)
+        for filename in filenames:
+            if filename[-5:] == '.jack':
+                compiler = CompilationEngine(path + '/' + filename)
+                output_name = filename[:-5] + '.xml'
+                compiler.compile().to_file(path + '/' + output_name)
 
 
 if __name__ == '__main__':
