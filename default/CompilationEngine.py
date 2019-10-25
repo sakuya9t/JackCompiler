@@ -1,3 +1,4 @@
+from default import FileHandler
 from default.JackTokenizer import Token, JackTokenizer
 
 TOKEN_KEYWORD = 'keyword'
@@ -21,6 +22,33 @@ class Node:
         if not self.children or len(self.children) == 0:
             return '({}, {})'.format(self.type, self.value)
         return '({}, {}: {})'.format(self.type, self.value, [str(x) for x in self.children])
+
+    def to_xml(self):
+        return self.print_xml(0)
+
+    def print_xml(self, indent):
+        if self.value is not None:
+            res = self.__indent(indent) + '<{}> {} </{}>'.format(self.type, self.value, self.type)
+            return [res]
+        else:
+            ans = [self.__indent(indent) + '<{}>'.format(self.type)]
+            for child in self.children:
+                ans.extend(child.print_xml(indent + 1))
+            ans.append(self.__indent(indent) + '</{}>'.format(self.type))
+        return ans
+
+    def to_file(self, filename):
+        xml = self.to_xml()
+        file = FileHandler.FileHandler(None)
+        file.refresh_content(xml)
+        file.write(filename)
+
+    @staticmethod
+    def __indent(n):
+        res = ''
+        for i in range(n):
+            res += ' '
+        return res
 
 
 class CompilationEngine:
@@ -46,11 +74,11 @@ class CompilationEngine:
         curr = start
         node = Node('class', None)
         #  class
-        node.children.append(Node(TOKEN_KEYWORD, self._token_value(curr)))
+        node.children.append(Node(self.tokens[curr].type, self._token_value(curr)))
         curr += 1  # identifier
-        node.children.append(Node(TOKEN_IDENTIFIER, self._token_value(curr)))
+        node.children.append(Node(self.tokens[curr].type, self._token_value(curr)))
         curr += 1  # {
-        node.children.append(Node(TOKEN_SYMBOL, self._token_value(curr)))
+        node.children.append(Node(self.tokens[curr].type, self._token_value(curr)))
         curr += 1
         fast = curr
         while fast < end:
@@ -63,7 +91,7 @@ class CompilationEngine:
             else:
                 fast += 1
         # }
-        node.children.append(Node(self.tokens[-1].type, self._token_value(-1)))
+        node.children.append(Node(self.tokens[end].type, self._token_value(end)))
         return node
 
     def isClassVarDec(self, start, end):

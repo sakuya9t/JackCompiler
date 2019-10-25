@@ -7,6 +7,7 @@ FILE_SQUARE_MAIN = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/projects/10/Square/
 FILE_ARRAY_MAIN = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/projects/10/ArrayTest/Main.jack'
 FILE_SQUARE_SQUARE = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/projects/10/Square/Square.jack'
 FILE_SQUARE_SQUAREGAME = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/projects/10/Square/SquareGame.jack'
+FILE_EXPRESSIONLESS_MAIN = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/projects/10/ExpressionLessSquare/Main.jack'
 
 
 class CompilerTest(unittest.TestCase):
@@ -125,6 +126,12 @@ class CompilerTest(unittest.TestCase):
         compiler = CompilationEngine(FILE_SQUARE_SQUARE)
         node = compiler.compileSubroutineBody(26, 50)
         self.assertEqual(len(node.children), 3)
+
+    def test_print_xml(self):
+        compiler = CompilationEngine(FILE_EXPRESSIONLESS_MAIN)
+        node = compiler.compile()
+        xml = node.to_xml()
+        node.to_file('noexp_main.xml')
 
 
 def _read_tokens(filename, start, end):
