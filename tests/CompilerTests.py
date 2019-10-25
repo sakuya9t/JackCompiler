@@ -1,13 +1,16 @@
 import unittest
+import os
 
 from default.CompilationEngine import TOKEN_KEYWORD, TOKEN_IDENTIFIER, TOKEN_SYMBOL, CompilationEngine, match_bracket
 from default.JackTokenizer import Token
 
-FILE_SQUARE_MAIN = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/projects/10/Square/Main.jack'
 FILE_ARRAY_MAIN = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/projects/10/ArrayTest/Main.jack'
+FILE_SQUARE_MAIN = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/projects/10/Square/Main.jack'
 FILE_SQUARE_SQUARE = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/projects/10/Square/Square.jack'
 FILE_SQUARE_SQUAREGAME = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/projects/10/Square/SquareGame.jack'
 FILE_EXPRESSIONLESS_MAIN = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/projects/10/ExpressionLessSquare/Main.jack'
+FILE_EXPRESSIONLESS_SQUARE = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/projects/10/ExpressionLessSquare/Square.jack'
+FILE_EXPRESSIONLESS_SQUAREGAME = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/projects/10/ExpressionLessSquare/SquareGame.jack'
 
 
 class CompilerTest(unittest.TestCase):
@@ -133,13 +136,46 @@ class CompilerTest(unittest.TestCase):
         self.assertEqual(len(node.children), 7)
         node = compiler.compileExpressionList(248, 264)
         self.assertEqual(len(node.children), 7)
+        node = compiler.compileExpressionList(62, 62)
+        self.assertEqual(len(node.children), 1)
 
+    def test_expression(self):
+        compiler = CompilationEngine(FILE_SQUARE_SQUARE)
+        node = compiler.compileExpression(146, 164)
+        self.assertEqual(len(node.children), 3)
+        node = compiler.compileExpression(147, 153)
+        self.assertEqual(len(node.children), 3)
+
+    def test_term(self):
+        compiler = CompilationEngine(FILE_SQUARE_SQUARE)
+        self.assertTrue(compiler.isTerm(147, 151))
+        self.assertTrue(compiler.isTerm(146, 154))
+        self.assertFalse(compiler.isTerm(146, 164))
+        compiler = CompilationEngine(FILE_SQUARE_MAIN)
+        self.assertTrue(compiler.isTerm(20, 24))
+        self.assertTrue(compiler.isTerm(115, 115))
+        self.assertFalse(compiler.isTerm(20, 20))
+        compiler = CompilationEngine(FILE_ARRAY_MAIN)
+        node = compiler.compileTerm(98, 101)
+        self.assertEqual(len(node.children), 4)
 
     def test_print_xml(self):
-        compiler = CompilationEngine(FILE_SQUARE_SQUARE)
+        compiler = CompilationEngine(FILE_ARRAY_MAIN)
         root = compiler.compile()
         xml = root.to_xml()
-        root.to_file('square_square.xml')
+        root.to_file('test.xml')
+
+    def test_verify(self):
+        tool_path = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/tools/TextComparer.sh'
+        for file in [FILE_ARRAY_MAIN, FILE_EXPRESSIONLESS_MAIN, FILE_EXPRESSIONLESS_SQUARE, FILE_EXPRESSIONLESS_SQUAREGAME,
+                     FILE_SQUARE_MAIN, FILE_SQUARE_SQUARE, FILE_SQUARE_SQUAREGAME]:
+            print('Verifying {}.'.format(file))
+            compiler = CompilationEngine(file)
+            compiler.compile().to_file('verify.xml')
+            verify_path = file[:-5] + '.xml'
+            command = '{} {} verify.xml'.format(tool_path, verify_path)
+            output = os.popen(command).read()
+            self.assertTrue('successfully' in output)
 
 
 def _read_tokens(filename, start, end):

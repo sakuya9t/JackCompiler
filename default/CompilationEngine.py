@@ -7,6 +7,10 @@ TOKEN_INT = 'integerConstant'
 TOKEN_STR = 'stringConstant'
 TOKEN_IDENTIFIER = 'identifier'
 
+ops = ["+", "-", "*", "/", "&", "|", "<", ">", "="]
+unary_ops = ["-", "~"]
+encode = {'<': '&lt;', '>': '&gt;', '&': '&amp;', '\"': '&quot;'}
+
 
 class Node:
     type = None
@@ -28,7 +32,8 @@ class Node:
 
     def print_xml(self, indent):
         if self.value is not None:
-            res = self.__indent(indent) + '<{}> {} </{}>'.format(self.type, self.value, self.type)
+            value = self.value if self.value not in encode.keys() else encode[self.value]
+            res = self.__indent(indent) + '<{}> {} </{}>'.format(self.type, value, self.type)
             return [res]
         else:
             ans = [self.__indent(indent) + '<{}>'.format(self.type)]
@@ -356,7 +361,7 @@ class CompilationEngine:
             return node
         slow = start
         fast = start
-        while slow < end:
+        while slow <= end:
             while fast <= end and self._token_value(fast) != ',':
                 fast += 1
             node.children.append(self.compileExpression(slow, fast - 1))
@@ -368,10 +373,78 @@ class CompilationEngine:
         return node
 
     def compileExpression(self, start, end):
-        return Node('expression', None)
+        node = Node('expression', None)
+        slow = start
+        fast = start
+        while slow <= end:
+            if self.isTerm(slow, fast):
+                node.children.append(self.compileTerm(slow, fast))
+                fast += 1
+                if self._token_value(fast) in ops:
+                    node.children.append(Node(self.tokens[fast].type, self.tokens[fast].value))  # op
+                slow = fast + 1
+            fast += 1
+        return node
 
-    def compileTerm(self):
-        pass
+    def isTerm(self, start, end):
+        if start == end:
+            if self.tokens[start].type in [TOKEN_STR, TOKEN_INT, TOKEN_KEYWORD]:
+                return True
+            if self.tokens[start].type == TOKEN_IDENTIFIER:
+                return self._token_value(start + 1) not in ['.', '(', '[']
+        if self._token_value(start) == '(':  # (expression)
+            return self.parenthesis[start] == end
+        if self._token_value(start) in unary_ops:  # unaryOp term
+            return self.isTerm(start + 1, end)
+        curr = start + 1
+        if self._token_value(curr) == '[':  # varName [ expression ]
+            return self.square_bracket[curr] == end
+        # subroutineCall
+        if self._token_value(curr) == '(':  # subroutineName ( expressionList )
+            return self.parenthesis[curr] == end
+        if self._token_value(curr) == '.':  # a.b(expressionList)
+            curr += 2
+            if self._token_value(curr) != '(':
+                return False
+            return self.parenthesis[curr] == end
+        return False
+
+    def compileTerm(self, start, end):
+        node = Node('term', None)
+        if start == end:
+            node.children.append(Node(self.tokens[start].type, self.tokens[start].value))
+            return node
+        if self._token_value(start) == '(':  # (expression)
+            node.children.append(Node(self.tokens[start].type, self.tokens[start].value))
+            node.children.append(self.compileExpression(start + 1, end - 1))
+            node.children.append(Node(self.tokens[end].type, self.tokens[end].value))
+            return node
+        if self._token_value(start) in unary_ops:  # unaryOp term
+            node.children.append(Node(self.tokens[start].type, self.tokens[start].value))
+            node.children.append(self.compileTerm(start + 1, end))
+            return node
+        curr = start
+        node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))
+        curr += 1
+        if self._token_value(curr) == '[':  # varName [ expression ]
+            node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))
+            node.children.append(self.compileExpression(curr + 1, end - 1))
+            node.children.append(Node(self.tokens[end].type, self.tokens[end].value))
+            return node
+        # subroutineCall
+        if self._token_value(curr) == '(':  # subroutineName ( expressionList )
+            node.children.append(self.compileExpressionList(curr + 1, end - 1))
+            node.children.append(Node(self.tokens[end].type, self.tokens[end].value))
+            return node
+        if self._token_value(curr) == '.':  # a.b(expressionList)
+            node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))
+            node.children.append(Node(self.tokens[curr + 1].type, self.tokens[curr + 1].value))
+            curr += 2
+            node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))  # (
+            node.children.append(self.compileExpressionList(curr + 1, end - 1))
+            node.children.append(Node(self.tokens[end].type, self.tokens[end].value))
+            return node
+        return node
 
 
 def match_bracket(tokens, opening, closing):
