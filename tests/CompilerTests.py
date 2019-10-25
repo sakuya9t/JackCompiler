@@ -102,6 +102,14 @@ class CompilerTest(unittest.TestCase):
         node = compiler.compileLet(78, 88)
         self.assertEqual(len(node.children), 8)
 
+    def test_while(self):
+        compiler = CompilationEngine(FILE_ARRAY_MAIN)
+        self.assertTrue(compiler.isWhile(86, 110))
+        node = compiler.compileWhile(86, 110)
+        self.assertEqual(len(node.children), 7)
+        self.assertTrue(compiler.isWhile(48, 75))
+        node = compiler.compileWhile(48, 75)
+        self.assertEqual(len(node.children), 7)
 
 
 def _read_tokens(filename, start, end):

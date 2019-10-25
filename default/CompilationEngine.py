@@ -194,8 +194,33 @@ class CompilationEngine:
         node.children.append(Node(self.tokens[end].type, self.tokens[end].value))  # ;
         return node
 
-    def compileWhile(self):
-        pass
+    def isWhile(self, start, end):
+        if self._token_value(start) != 'while':
+            return False
+        curr = start + 1
+        if self._token_value(curr) != '(' or curr not in self.parenthesis.keys():
+            return False
+        curr = self.parenthesis[curr]
+        curr += 1
+        if self._token_value(curr) != '{' or curr not in self.bracket_map.keys():
+            return False
+        curr = self.bracket_map[curr]
+        return curr == end
+
+    def compileWhile(self, start, end):
+        curr = start
+        node = Node('whileStatement', None)
+        node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))  # while
+        curr += 1
+        node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))  # (
+        node.children.append(self.compileExpression(curr + 1, self.parenthesis[curr] - 1))
+        curr = self.parenthesis[curr]
+        node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))  # )
+        curr += 1
+        node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))  # {
+        node.children.append(self.compileStatements(curr + 1, self.bracket_map[curr] - 1))
+        node.children.append(Node(self.tokens[end].type, self.tokens[end].value))
+        return node
 
     def isReturn(self, start, end):
         return self._token_value(start) == 'return' and self._token_value(end) == ';'
