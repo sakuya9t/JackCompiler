@@ -144,8 +144,34 @@ class CompilationEngine:
     def compileStatements(self, start, end):
         return Node('statements', None)
 
-    def compileDo(self):
-        pass
+    def isDo(self, start, end):
+        if self._token_value(start) != 'do' or self._token_value(end) != ';':
+            return False
+        left_para = -1
+        curr = start
+        while curr < end:
+            if self._token_value(curr) == '(':
+                if left_para != -1:
+                    return False
+                left_para = curr
+                curr = self.parenthesis[curr]
+            curr += 1
+        return left_para != -1
+
+    def compileDo(self, start, end):
+        node = Node('doStatement', None)
+        node.children.append(Node(self.tokens[start].type, self.tokens[start].value))
+        curr = start + 1
+        while self._token_value(curr) != '(':
+            node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))
+            curr += 1
+        node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))  # (
+        node.children.append(self.compileExpressionList(curr + 1, self.parenthesis[curr] - 1))
+        curr = self.parenthesis[curr]
+        node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))  # )
+        curr += 1
+        node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))  # ;
+        return node
 
     def compileLet(self):
         pass
@@ -213,8 +239,8 @@ class CompilationEngine:
         node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))  # }
         return node
 
-    def compileExpressionList(self):
-        pass
+    def compileExpressionList(self, start, end):
+        return Node('expressionList', None)
 
     def compileExpression(self, start, end):
         return Node('expression', None)

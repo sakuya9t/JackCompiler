@@ -6,6 +6,7 @@ from default.JackTokenizer import Token
 FILE_SQUARE_MAIN = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/projects/10/Square/Main.jack'
 FILE_ARRAY_MAIN = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/projects/10/ArrayTest/Main.jack'
 FILE_SQUARE_SQUARE = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/projects/10/Square/Square.jack'
+FILE_SQUARE_SQUAREGAME = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/projects/10/Square/SquareGame.jack'
 
 
 class CompilerTest(unittest.TestCase):
@@ -71,6 +72,23 @@ class CompilerTest(unittest.TestCase):
         self.assertTrue(compiler.isReturn(47, 49))
         node = compiler.compileReturn(47, 49)
         self.assertEqual(len(node.children), 3)
+
+    def test_do(self):
+        compiler = CompilationEngine(FILE_ARRAY_MAIN)
+        self.assertTrue(compiler.isDo(111, 118))
+        self.assertTrue(compiler.isDo(119, 128))
+        self.assertTrue(compiler.isDo(129, 135))
+        self.assertFalse(compiler.isDo(111, 135))
+        node = compiler.compileDo(111, 118)
+        self.assertEqual(len(node.children), 8)
+        node = compiler.compileDo(119, 128)
+        self.assertEqual(len(node.children), 8)
+        node = compiler.compileDo(129, 135)
+        self.assertEqual(len(node.children), 8)
+        compiler = CompilationEngine(FILE_SQUARE_SQUAREGAME)
+        self.assertTrue(compiler.isDo(182, 186))
+        node = compiler.compileDo(182, 186)
+        self.assertEqual(len(node.children), 6)
 
 
 def _read_tokens(filename, start, end):
