@@ -172,8 +172,27 @@ class CompilationEngine:
         node.children.append(Node(self.tokens[end].type, self.tokens[end].value))  # ;
         return node
 
-    def compileLet(self):
-        pass
+    def isLet(self, start, end):
+        return self._token_value(start) == 'let' and self._token_value(end) == ';'
+
+    def compileLet(self, start, end):
+        node = Node('letStatement', None)
+        curr = start
+        while curr <= end and self._token_value(curr) != '[' and self._token_value(curr) != '=':
+            node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))
+            curr += 1
+        if curr > end:
+            return node
+        if self._token_value(curr) == '[':
+            node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))  # [
+            node.children.append(self.compileExpression(curr + 1, self.square_bracket[curr] - 1))
+            curr = self.square_bracket[curr]
+            node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))  # ]
+            curr += 1
+        node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))  # =
+        node.children.append(self.compileExpression(curr + 1, end - 1))
+        node.children.append(Node(self.tokens[end].type, self.tokens[end].value))  # ;
+        return node
 
     def compileWhile(self):
         pass

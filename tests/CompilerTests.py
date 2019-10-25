@@ -90,6 +90,19 @@ class CompilerTest(unittest.TestCase):
         node = compiler.compileDo(182, 186)
         self.assertEqual(len(node.children), 6)
 
+    def test_let(self):
+        compiler = CompilationEngine(FILE_SQUARE_MAIN)
+        self.assertTrue(compiler.isLet(112, 118))
+        node = compiler.compileLet(112, 118)
+        self.assertEqual(len(node.children), 5)
+        self.assertTrue(compiler.isLet(102, 111))
+        node = compiler.compileLet(102, 111)
+        self.assertEqual(len(node.children), 5)
+        self.assertTrue(compiler.isLet(78, 88))
+        node = compiler.compileLet(78, 88)
+        self.assertEqual(len(node.children), 8)
+
+
 
 def _read_tokens(filename, start, end):
     with open(filename, 'r') as file:
