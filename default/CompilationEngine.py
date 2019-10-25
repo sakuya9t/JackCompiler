@@ -121,6 +121,21 @@ class CompilationEngine:
 
     def compileSubroutineBody(self, start, end):
         node = Node('subroutineBody', None)
+        node.children.append(Node(self.tokens[start].type, self.tokens[start].value))  # {
+        slow = start + 1
+        fast = start + 1
+
+        while slow < end:
+            if self._token_value(slow) != 'var':
+                break
+            if self.isVarDec(slow, fast):
+                node.children.append(self.compileVarDec(slow, fast))
+                slow = fast + 1
+                fast = fast + 1
+            else:
+                fast += 1
+        node.children.append(self.compileStatements(slow, end - 1))
+        node.children.append(Node(self.tokens[end].type, self.tokens[end].value))  # }
         return node
 
     def isVarDec(self, start, end):

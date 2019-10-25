@@ -118,6 +118,14 @@ class CompilerTest(unittest.TestCase):
         node = compiler.compileStatements(55, 74)
         self.assertEqual(len(node.children), 2)
 
+    def test_subroutine_body(self):
+        compiler = CompilationEngine(FILE_ARRAY_MAIN)
+        node = compiler.compileSubroutineBody(8, 138)
+        self.assertEqual(len(node.children), 6)
+        compiler = CompilationEngine(FILE_SQUARE_SQUARE)
+        node = compiler.compileSubroutineBody(26, 50)
+        self.assertEqual(len(node.children), 3)
+
 
 def _read_tokens(filename, start, end):
     with open(filename, 'r') as file:
