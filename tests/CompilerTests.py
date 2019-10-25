@@ -127,11 +127,19 @@ class CompilerTest(unittest.TestCase):
         node = compiler.compileSubroutineBody(26, 50)
         self.assertEqual(len(node.children), 3)
 
+    def test_expression_list(self):
+        compiler = CompilationEngine(FILE_SQUARE_SQUARE)
+        node = compiler.compileExpressionList(334, 344)
+        self.assertEqual(len(node.children), 7)
+        node = compiler.compileExpressionList(248, 264)
+        self.assertEqual(len(node.children), 7)
+
+
     def test_print_xml(self):
-        compiler = CompilationEngine(FILE_EXPRESSIONLESS_MAIN)
-        node = compiler.compile()
-        xml = node.to_xml()
-        node.to_file('noexp_main.xml')
+        compiler = CompilationEngine(FILE_SQUARE_SQUARE)
+        root = compiler.compile()
+        xml = root.to_xml()
+        root.to_file('square_square.xml')
 
 
 def _read_tokens(filename, start, end):

@@ -47,7 +47,7 @@ class Node:
     def __indent(n):
         res = ''
         for i in range(n):
-            res += ' '
+            res += '  '
         return res
 
 
@@ -85,9 +85,11 @@ class CompilationEngine:
             if self.isClassVarDec(curr, fast):
                 node.children.append(self.compileClassVarDec(curr, fast))
                 curr = fast + 1
+                fast = fast + 1
             elif self.isSubroutine(curr, fast):
                 node.children.append(self.compileSubroutine(curr, fast))
                 curr = fast + 1
+                fast = fast + 1
             else:
                 fast += 1
         # }
@@ -95,10 +97,7 @@ class CompilationEngine:
         return node
 
     def isClassVarDec(self, start, end):
-        return self.tokens[start].type == TOKEN_KEYWORD \
-               and self._token_value(start) in ['static', 'field'] \
-               and self.tokens[end].type == TOKEN_SYMBOL \
-               and self._token_value(end) == ';'
+        return self._token_value(start) in ['static', 'field'] and self._token_value(end) == ';'
 
     def compileClassVarDec(self, start, end):
         node = Node('classVarDec', None)
@@ -352,7 +351,21 @@ class CompilationEngine:
         return node
 
     def compileExpressionList(self, start, end):
-        return Node('expressionList', None)
+        node = Node('expressionList', None)
+        if start > end:
+            return node
+        slow = start
+        fast = start
+        while slow < end:
+            while fast <= end and self._token_value(fast) != ',':
+                fast += 1
+            node.children.append(self.compileExpression(slow, fast - 1))
+            if fast > end:
+                break
+            node.children.append(Node(self.tokens[fast].type, self.tokens[fast].value))  # ,
+            slow = fast + 1
+            fast = fast + 1
+        return node
 
     def compileExpression(self, start, end):
         return Node('expression', None)
