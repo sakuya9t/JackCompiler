@@ -153,8 +153,16 @@ class CompilationEngine:
     def compileWhile(self):
         pass
 
-    def compileReturn(self):
-        pass
+    def isReturn(self, start, end):
+        return self._token_value(start) == 'return' and self._token_value(end) == ';'
+
+    def compileReturn(self, start, end):
+        node = Node('returnStatement', None)
+        node.children.append(Node(self.tokens[start].type, self.tokens[start].value))
+        if start + 1 < end:
+            node.children.append(self.compileExpression(start + 1, end - 1))
+        node.children.append(Node(self.tokens[end].type, self.tokens[end].value))
+        return node
 
     def isIf(self, start, end):
         if self._token_value(start) != 'if':

@@ -62,6 +62,16 @@ class CompilerTest(unittest.TestCase):
         node = compiler.compileIf(396, 468)
         self.assertEqual(len(node.children), 7)
 
+    def test_return(self):
+        compiler = CompilationEngine(FILE_ARRAY_MAIN)
+        self.assertTrue(compiler.isReturn(136, 137))
+        node = compiler.compileReturn(136, 137)
+        self.assertEqual(len(node.children), 2)
+        compiler = CompilationEngine(FILE_SQUARE_SQUARE)
+        self.assertTrue(compiler.isReturn(47, 49))
+        node = compiler.compileReturn(47, 49)
+        self.assertEqual(len(node.children), 3)
+
 
 def _read_tokens(filename, start, end):
     with open(filename, 'r') as file:
