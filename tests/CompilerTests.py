@@ -50,6 +50,18 @@ class CompilerTest(unittest.TestCase):
         node = compiler.compileVarDec(9, 12)
         self.assertEqual(len(node.children), 4)
 
+    def test_if(self):
+        compiler = CompilationEngine(FILE_SQUARE_MAIN)
+        self.assertTrue(compiler.isIf(63, 119))
+        node = compiler.compileIf(63, 119)
+        self.assertEqual(len(node.children), 11)
+        self.assertFalse(compiler.isIf(63, 89))
+        self.assertFalse(compiler.isIf(90, 119))
+        compiler = CompilationEngine(FILE_SQUARE_SQUARE)
+        self.assertTrue(compiler.isIf(396, 468))
+        node = compiler.compileIf(396, 468)
+        self.assertEqual(len(node.children), 7)
+
 
 def _read_tokens(filename, start, end):
     with open(filename, 'r') as file:

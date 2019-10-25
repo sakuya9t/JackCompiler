@@ -72,7 +72,6 @@ class CompilationEngine:
                and self.tokens[end].type == TOKEN_SYMBOL \
                and self._token_value(end) == ';'
 
-
     def compileClassVarDec(self, start, end):
         node = Node('classVarDec', None)
         curr = start
@@ -104,7 +103,7 @@ class CompilationEngine:
         node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))
         left_para = curr
         right_para = self.parenthesis[curr]
-        node.children.append(self.compileParameterList(left_para+1, right_para-1))
+        node.children.append(self.compileParameterList(left_para + 1, right_para - 1))
         curr = right_para
         node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))
         curr += 1
@@ -142,8 +141,8 @@ class CompilationEngine:
             curr += 1
         return node
 
-    def compileStatements(self):
-        pass
+    def compileStatements(self, start, end):
+        return Node('statements', None)
 
     def compileDo(self):
         pass
@@ -157,16 +156,62 @@ class CompilationEngine:
     def compileReturn(self):
         pass
 
-    def compileIf(self):
-        pass
+    def isIf(self, start, end):
+        if self._token_value(start) != 'if':
+            return False
+        curr = start + 1
+        if self._token_value(curr) != '(' or curr not in self.parenthesis.keys():
+            return False
+        curr = self.parenthesis[curr] + 1  # {
+        if self._token_value(curr) != '{' or curr not in self.bracket_map.keys():
+            return False
+        curr = self.bracket_map[curr]
+        if curr == end:
+            return self._token_value(curr + 1) != 'else'
+        # have else
+        curr += 1
+        if self._token_value(curr) != 'else':
+            return False
+        curr += 1
+        if self._token_value(curr) != '{' or curr not in self.bracket_map.keys():
+            return False
+        curr = self.bracket_map[curr]
+        return curr == end
 
-    def compileExpression(self):
-        pass
-
-    def compileTerm(self):
-        pass
+    def compileIf(self, start, end):
+        curr = start
+        node = Node('ifStatement', None)
+        while self._token_value(curr) != '(':
+            node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))
+            curr += 1
+        node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))  # (
+        node.children.append(self.compileExpression(curr + 1, self.parenthesis[curr] - 1))
+        curr = self.parenthesis[curr]
+        node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))  # )
+        curr += 1
+        # {
+        node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))
+        node.children.append(self.compileStatements(curr + 1, self.bracket_map[curr] - 1))
+        curr = self.bracket_map[curr]
+        node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))  # }
+        if curr == end:
+            return node
+        curr += 1
+        node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))  # else
+        curr += 1
+        node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))  # {
+        node.children.append(self.compileStatements(curr + 1, self.bracket_map[curr] - 1))
+        curr = self.bracket_map[curr]
+        node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))  # }
+        return node
 
     def compileExpressionList(self):
+        pass
+
+    def compileExpression(self, start, end):
+        return Node('expression', None)
+
+    def compileTerm(self):
         pass
 
 
