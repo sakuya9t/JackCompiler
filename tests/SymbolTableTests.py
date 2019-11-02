@@ -1,7 +1,7 @@
 import unittest
 
 from SymbolTable import SymbolTable
-from constant import KIND_STATIC, KIND_FIELD, KIND_ARGUMENT, KIND_VAR
+from constant import KIND_STATIC, KIND_ARGUMENT, KIND_VAR
 
 
 class SymbolTableTests(unittest.TestCase):
