@@ -12,10 +12,10 @@ class Node:
     value = None
     children = []
 
-    def __init__(self, type, value):
+    def __init__(self, type, value, children=[]):
         self.type = type
         self.value = value
-        self.children = []
+        self.children = children
 
     def __str__(self):
         if not self.children or len(self.children) == 0:
@@ -368,6 +368,7 @@ class CompilationEngine:
         return node
 
     def compileExpression(self, start, end):
+        # expression: term (op term)*
         node = Node('expression', None)
         slow = start
         fast = start

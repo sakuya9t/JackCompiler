@@ -1,36 +1,36 @@
-from FileHandler import FileHandler
+def write_push(segment, index):
+    return 'push {} {}'.format(segment, index)
 
 
-class VMWriter:
-    def __init__(self):
-        self.file = FileHandler(None)
+def write_pop(segment, index):
+    return 'pop {} {}'.format(segment, index)
 
-    def write_push(self, segment, index):
-        self.file.fileContent.append('push {} {}'.format(segment, index))
 
-    def write_pop(self, segment, index):
-        self.file.fileContent.append('pop {} {}'.format(segment, index))
+def write_arithmetic(command):
+    return command
 
-    def write_arithmetic(self, command):
-        self.file.fileContent.append(command)
 
-    def write_label(self, label):
-        self.file.fileContent.append('label {}'.format(label))
+def write_label(label):
+    return 'label {}'.format(label)
 
-    def write_goto(self, label):
-        self.file.fileContent.append('goto {}'.format(label))
 
-    def write_if(self, label):
-        self.file.fileContent.append('if-goto {}'.format(label))
+def write_goto(label):
+    return 'goto {}'.format(label)
 
-    def write_call(self, name, nargs):
-        self.file.fileContent.append('call {} {}'.format(name, nargs))
 
-    def write_function(self, name, nargs):
-        self.file.fileContent.append('function {} {}'.format(name, nargs))
+def write_if(label):
+    return 'if-goto {}'.format(label)
 
-    def write_return(self):
-        self.file.fileContent.append('return')
 
-    def output_file(self, filename):
-        self.file.write(filename)
+def write_call(name, nargs=None):
+    if not nargs:
+        return 'call {}'.format(name)
+    return 'call {} {}'.format(name, nargs)
+
+
+def write_function(name, nargs):
+    return 'function {} {}'.format(name, nargs)
+
+
+def write_return():
+    return 'return'

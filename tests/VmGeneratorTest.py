@@ -16,6 +16,18 @@ class CompilerTest(unittest.TestCase):
         generator.process_class_var_dec(node)
         self.assertTrue(len(generator.symbol_table.class_table) == 2)
 
+    def test_process_expression(self):
+        generator = VMGenerator()
+        node = Node('expression', None)
+        node.children = [Node('term', None, [Node('integerConstant', '1')]),
+                         Node('symbol', '+'),
+                         Node('term', None, [Node('integerConstant', '2')]),
+                         Node('symbol', '*'),
+                         Node('term', None, [Node('identifier', 'x')])
+                         ]
+        code = generator.process_expression(node)
+        self.assertEqual(code, ['1', '2', 'add', 'x', 'call multiply'])
+
 
 if __name__ == '__main__':
     unittest.main()
