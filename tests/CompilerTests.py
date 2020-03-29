@@ -3,14 +3,15 @@ import os
 
 from CompilationEngine import TOKEN_KEYWORD, TOKEN_IDENTIFIER, TOKEN_SYMBOL, CompilationEngine, match_bracket
 from JackTokenizer import Token
+from constant import HOME_PATH
 
-FILE_ARRAY_MAIN = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/projects/10/ArrayTest/Main.jack'
-FILE_SQUARE_MAIN = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/projects/10/Square/Main.jack'
-FILE_SQUARE_SQUARE = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/projects/10/Square/Square.jack'
-FILE_SQUARE_SQUAREGAME = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/projects/10/Square/SquareGame.jack'
-FILE_EXPRESSIONLESS_MAIN = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/projects/10/ExpressionLessSquare/Main.jack'
-FILE_EXPRESSIONLESS_SQUARE = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/projects/10/ExpressionLessSquare/Square.jack'
-FILE_EXPRESSIONLESS_SQUAREGAME = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/projects/10/ExpressionLessSquare/SquareGame.jack'
+FILE_ARRAY_MAIN = HOME_PATH + '/Nand2Tetris/nand2tetris/projects/10/ArrayTest/Main.jack'
+FILE_SQUARE_MAIN = HOME_PATH + '/Nand2Tetris/nand2tetris/projects/10/Square/Main.jack'
+FILE_SQUARE_SQUARE = HOME_PATH + '/Nand2Tetris/nand2tetris/projects/10/Square/Square.jack'
+FILE_SQUARE_SQUAREGAME = HOME_PATH + '/Nand2Tetris/nand2tetris/projects/10/Square/SquareGame.jack'
+FILE_EXPRESSIONLESS_MAIN = HOME_PATH + '/Nand2Tetris/nand2tetris/projects/10/ExpressionLessSquare/Main.jack'
+FILE_EXPRESSIONLESS_SQUARE = HOME_PATH + '/Nand2Tetris/nand2tetris/projects/10/ExpressionLessSquare/Square.jack'
+FILE_EXPRESSIONLESS_SQUAREGAME = HOME_PATH + '/Nand2Tetris/nand2tetris/projects/10/ExpressionLessSquare/SquareGame.jack'
 
 
 class CompilerTest(unittest.TestCase):
@@ -166,7 +167,7 @@ class CompilerTest(unittest.TestCase):
         root.to_file('test.xml')
 
     def test_verify(self):
-        tool_path = '/home/sakuya/Dev/Nand2Tetris/nand2tetris/tools/TextComparer.sh'
+        tool_path = HOME_PATH + '/Nand2Tetris/nand2tetris/tools/TextComparer.bat'
         for file in [FILE_ARRAY_MAIN, FILE_EXPRESSIONLESS_MAIN, FILE_EXPRESSIONLESS_SQUARE, FILE_EXPRESSIONLESS_SQUAREGAME,
                      FILE_SQUARE_MAIN, FILE_SQUARE_SQUARE, FILE_SQUARE_SQUAREGAME]:
             print('Verifying {}.'.format(file))

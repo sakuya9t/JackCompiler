@@ -1,11 +1,6 @@
 import FileHandler
 from JackTokenizer import JackTokenizer
-
-TOKEN_KEYWORD = 'keyword'
-TOKEN_SYMBOL = 'symbol'
-TOKEN_INT = 'integerConstant'
-TOKEN_STR = 'stringConstant'
-TOKEN_IDENTIFIER = 'identifier'
+from constant import *
 
 ops = ["+", "-", "*", "/", "&", "|", "<", ">", "="]
 unary_ops = ["-", "~"]

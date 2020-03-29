@@ -1,5 +1,7 @@
 from constant import KIND_STATIC, KIND_FIELD, KIND_ARGUMENT, KIND_VAR
 
+kind_map = {'static': KIND_STATIC, 'field': KIND_FIELD, 'argument': KIND_ARGUMENT, 'var': KIND_VAR}
+
 
 class SymbolTable:
     def __init__(self):
@@ -13,6 +15,8 @@ class SymbolTable:
         self.__clear_seq(KIND_VAR)
 
     def define(self, name, type, kind):
+        if isinstance(kind, str):
+            kind = kind_map[kind]
         if kind in [KIND_STATIC, KIND_FIELD]:
             if name in self.class_table.keys():
                 raise ValueError('Duplicate Defination of variable {}.'.format(name))
