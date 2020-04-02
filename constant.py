@@ -1,7 +1,7 @@
-KIND_STATIC = 0
-KIND_FIELD = 1
-KIND_ARGUMENT = 2
-KIND_VAR = 3
+KIND_STATIC = 'static'
+KIND_FIELD = 'field'
+KIND_ARGUMENT = 'argument'
+KIND_VAR = 'var'
 
 TOKEN_KEYWORD = 'keyword'
 TOKEN_SYMBOL = 'symbol'

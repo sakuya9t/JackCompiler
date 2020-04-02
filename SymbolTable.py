@@ -1,9 +1,9 @@
 from constant import KIND_STATIC, KIND_FIELD, KIND_ARGUMENT, KIND_VAR
 
-kind_map = {'static': KIND_STATIC, 'field': KIND_FIELD, 'argument': KIND_ARGUMENT, 'var': KIND_VAR}
-
 
 class SymbolTable:
+    kind_map = {KIND_STATIC: KIND_STATIC, KIND_FIELD: 'this', KIND_ARGUMENT: KIND_ARGUMENT, KIND_VAR: 'local'}
+
     def __init__(self):
         self.class_table = {}
         self.subroutine_table = {}
@@ -14,9 +14,7 @@ class SymbolTable:
         self.__clear_seq(KIND_ARGUMENT)
         self.__clear_seq(KIND_VAR)
 
-    def define(self, name, type, kind):
-        if isinstance(kind, str):
-            kind = kind_map[kind]
+    def define(self, name: str, type: str, kind: str):
         if kind in [KIND_STATIC, KIND_FIELD]:
             if name in self.class_table.keys():
                 raise ValueError('Duplicate Defination of variable {}.'.format(name))
@@ -37,6 +35,12 @@ class SymbolTable:
         elif name in self.class_table.keys():
             return self.class_table[name]['kind']
         raise ValueError('Symbol with name {} not found.'.format(name))
+
+    def vm_kind_of(self, name):
+        return self.kind_map[self.kind_of(name)]
+
+    def is_variable(self, name):
+        return name in self.subroutine_table.keys() or name in self.class_table.keys()
 
     def type_of(self, name):
         if name in self.subroutine_table.keys():

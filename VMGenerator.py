@@ -3,13 +3,14 @@ from SymbolTable import SymbolTable
 from VMWriter import write_call, write_push
 from constant import *
 
-op = {'+': 'add', '-': 'sub', '*': write_call('multiply'), '/': write_call('divide')}
+op = {'+': 'add', '-': 'sub', '*': write_call('Math.multiply 2'), '/': write_call('Math.divide 2')}
 unop = {'-': 'neg', '~': 'not'}
 
 
 class VMGenerator:
     vm_code = []
     symbol_table = SymbolTable()
+    current_class = ''
 
     def process(self, node: Node):
         if node.type == 'classVarDec':
@@ -24,6 +25,20 @@ class VMGenerator:
         for var_name in var_names:
             self.symbol_table.define(var_name, var_type, var_kind)
         return []
+
+    def process_do(self, node: Node):
+        # there is no a.b.c(args) call, so don't consider it.
+        # do f(args); -> len = 6
+        # do a.b(args); -> len = 8
+        if len(node.children) not in [6, 8]:
+            raise Exception('Do statement is not f(args) or a.b(args) formatted. Node: {node}'.format(node=node))
+
+        func_name = node.children[-5].value
+        obj_name = node.children[-7].value if len(node.children) == 8 else 'this'
+        code = self.process_expression_list(node.children[-3])
+        # todo: handle nArgs
+        code.append(write_call(self.make_function(obj_name, func_name)))
+        return code
 
     def process_expression_list(self, node: Node):
         code = []
@@ -44,8 +59,7 @@ class VMGenerator:
 
     def process_term(self, node: Node):
         if node.desc == 'single':  # constant / variable
-            # todo: change variable to 'local x'
-            return [write_push(node.children[0].value)]
+            return [write_push(self.make_variable(node.children[0]))]
         if node.desc == '(exp)':
             return self.process_expression(node.children[1])
         if node.desc == 'unop(exp)':
@@ -56,13 +70,43 @@ class VMGenerator:
             return None
         if node.desc == 'f(exps)':
             code = self.process_expression_list(node.children[2])
-            # todo: attach current class name, transfer f to someclass.f
-            code.append(write_call(node.children[0].value))
+            code.append(write_call(self.make_function('this', node.children[0].value)))
             return code
-        if node.desc == 'a.b(exps)':  # todo: convert object variable to class name
+        if node.desc == 'a.b(exps)':
+            exps_cnt = node.children[4].desc['cnt']
             code = self.process_expression_list(node.children[4])
             obj_name = node.children[0].value
             func_name = node.children[2].value
-            code.append(write_call(obj_name + '.' + func_name))
+            code.append(write_call(self.make_function(obj_name, func_name), exps_cnt))
             return code
         raise Exception('Cannot compile node {node}'.format(node=str(node)))
+
+    def make_variable(self, variable_like_node):
+        """
+        Translate node contains a variable to something like 'local 4', 'var 3'.
+        If not containing a variable, return itself. It can be a constant.
+        TODO: Currently we are not considering string constant.
+        :param variable_like_node: a name of variable
+        :return: translated format generated using symbol table
+        """
+        if variable_like_node.type == TOKEN_STR:
+            raise Exception('String constant not supported')
+        if variable_like_node.type == TOKEN_INT:
+            return 'constant {}'.format(variable_like_node.value)
+        name = variable_like_node.value
+        kind = self.symbol_table.vm_kind_of(name)
+        index = self.symbol_table.index_of(name)
+        return '{} {}'.format(kind, index)
+
+    def make_function(self, obj_name, func_name):
+        """
+        Translate function name to Class.Method formation
+        :param obj_name: class name or object name or 'this'
+        :param func_name: function name
+        :return: Class.Method formatted function
+        """
+        if obj_name == 'this':
+            obj_name = self.current_class
+        elif self.symbol_table.is_variable(obj_name):
+            obj_name = self.symbol_table.type_of(obj_name)
+        return '{}.{}'.format(obj_name, func_name)

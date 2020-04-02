@@ -354,6 +354,7 @@ class CompilationEngine:
 
     def compileExpressionList(self, start, end):
         node = Node('expressionList', None)
+        node.desc = {'cnt': 0}
         if start > end:
             return node
         slow = start
@@ -362,6 +363,7 @@ class CompilationEngine:
             while fast <= end and self._token_value(fast) != ',':
                 fast += 1
             node.children.append(self.compileExpression(slow, fast - 1))
+            node.desc['cnt'] += 1
             if fast > end:
                 break
             node.children.append(Node(self.tokens[fast].type, self.tokens[fast].value))  # ,
