@@ -1,5 +1,5 @@
 def write_push(segment, index=None):
-    if not index:
+    if index is None:
         return 'push {}'.format(segment)
     return 'push {} {}'.format(segment, index)
 

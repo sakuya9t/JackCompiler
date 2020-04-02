@@ -8,9 +8,10 @@ unop = {'-': 'neg', '~': 'not'}
 
 
 class VMGenerator:
-    vm_code = []
-    symbol_table = SymbolTable()
-    current_class = ''
+    def __init__(self):
+        self.vm_code = []
+        self.symbol_table = SymbolTable()
+        self.current_class = ''
 
     def process(self, node: Node):
         if node.type == 'classVarDec':
@@ -26,18 +27,24 @@ class VMGenerator:
             self.symbol_table.define(var_name, var_type, var_kind)
         return []
 
+    def process_return(self, node: Node):
+        # if no expression exist, return constant 0
+        code = self.process_expression(node.children[1]) if node.children[1].type == 'expression' \
+            else [write_push('constant', 0)]
+        code.append('return')
+        return code
+
     def process_do(self, node: Node):
         # there is no a.b.c(args) call, so don't consider it.
         # do f(args); -> len = 6
         # do a.b(args); -> len = 8
         if len(node.children) not in [6, 8]:
             raise Exception('Do statement is not f(args) or a.b(args) formatted. Node: {node}'.format(node=node))
-
         func_name = node.children[-5].value
         obj_name = node.children[-7].value if len(node.children) == 8 else 'this'
         code = self.process_expression_list(node.children[-3])
-        # todo: handle nArgs
-        code.append(write_call(self.make_function(obj_name, func_name)))
+        n_args = node.children[-3].desc['cnt']
+        code.append(write_call(self.make_function(obj_name, func_name), n_args))
         return code
 
     def process_expression_list(self, node: Node):
@@ -108,5 +115,6 @@ class VMGenerator:
         if obj_name == 'this':
             obj_name = self.current_class
         elif self.symbol_table.is_variable(obj_name):
+            # TODO: handle object and Class type differently (need to put obj into this pointer)
             obj_name = self.symbol_table.type_of(obj_name)
         return '{}.{}'.format(obj_name, func_name)

@@ -19,7 +19,28 @@ class CompilerTest(unittest.TestCase):
 
     def test_process_do(self):
         generator = VMGenerator()
-        self.assertTrue(True)
+        node = Node('doStatement', None,
+                    [Node('keyword', 'do'), Node('identifier', 'Memory'), Node('symbol', '.'),
+                     Node('identifier', 'test'), Node('symbol', '('),
+                     Node('expressionList',
+                          None,
+                          [Node('expression', None, [Node('term', None, [Node('integerConstant', '2')], 'single')]),
+                           Node('symbol', ','),
+                           Node('expression', None, [Node('term', None, [Node('integerConstant', '3')], 'single')])],
+                          {'cnt': 2}),
+                     Node('symbol', ')'), Node('symbol', ';')])
+        self.assertEqual(generator.process_do(node), ['push constant 2', 'push constant 3', 'call Memory.test 2'])
+
+    def test_process_return(self):
+        generator = VMGenerator()
+        generator.symbol_table.define('x', 'int', KIND_VAR)
+        node = Node('returnStatement', None, [Node('keyword', 'return'), Node('symbol', ';')])
+        self.assertEqual(generator.process_return(node), ['push constant 0', 'return'])
+        node = Node('returnStatement', None,
+                    [Node('keyword', 'return'),
+                     Node('expression', None, [Node('term', None, [Node('identifier', 'x')], 'single')]),
+                     Node('symbol', ';')])
+        self.assertEqual(generator.process_return(node), ['push local 0', 'return'])
 
     def test_process_expression(self):
         generator = VMGenerator()
@@ -32,7 +53,7 @@ class CompilerTest(unittest.TestCase):
                          Node('term', None, [Node('identifier', 'x')], 'single')
                          ]
         code = generator.process_expression(node)
-        self.assertEqual(code, ['push constant 1', 'push constant 2', 'add', 'push this 0', 'call multiply'])
+        self.assertEqual(code, ['push constant 1', 'push constant 2', 'add', 'push this 0', 'call Math.multiply 2'])
 
     def test_process_term(self):
         generator = VMGenerator()

@@ -135,10 +135,13 @@ class CompilerTest(unittest.TestCase):
         compiler = CompilationEngine(FILE_SQUARE_SQUARE)
         node = compiler.compileExpressionList(334, 344)
         self.assertEqual(len(node.children), 7)
+        self.assertEqual(node.desc['cnt'], 4)
         node = compiler.compileExpressionList(248, 264)
         self.assertEqual(len(node.children), 7)
+        self.assertEqual(node.desc['cnt'], 4)
         node = compiler.compileExpressionList(62, 62)
         self.assertEqual(len(node.children), 1)
+        self.assertEqual(node.desc['cnt'], 1)
 
     def test_expression(self):
         compiler = CompilationEngine(FILE_SQUARE_SQUARE)
@@ -159,11 +162,12 @@ class CompilerTest(unittest.TestCase):
         compiler = CompilationEngine(FILE_ARRAY_MAIN)
         node = compiler.compileTerm(98, 101)
         self.assertEqual(len(node.children), 4)
+        self.assertEqual(node.desc, 'var[exp]')
 
     def test_print_xml(self):
         compiler = CompilationEngine(FILE_ARRAY_MAIN)
         root = compiler.compile()
-        xml = root.to_xml()
+        root.to_xml()
         root.to_file('test.xml')
 
     def test_verify(self):
