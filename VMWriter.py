@@ -1,4 +1,6 @@
-def write_push(segment, index):
+def write_push(segment, index=None):
+    if not index:
+        return 'push {}'.format(segment)
     return 'push {} {}'.format(segment, index)
 
 

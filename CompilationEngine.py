@@ -11,11 +11,13 @@ class Node:
     type = None
     value = None
     children = []
+    desc = None
 
-    def __init__(self, type, value, children=[]):
+    def __init__(self, type, value, children=None, desc=None):
         self.type = type
         self.value = value
-        self.children = children
+        self.children = [] if children is None else children
+        self.desc = desc
 
     def __str__(self):
         if not self.children or len(self.children) == 0:
@@ -409,15 +411,18 @@ class CompilationEngine:
         node = Node('term', None)
         if start == end:
             node.children.append(Node(self.tokens[start].type, self.tokens[start].value))
+            node.desc = 'single'
             return node
         if self._token_value(start) == '(':  # (expression)
             node.children.append(Node(self.tokens[start].type, self.tokens[start].value))
             node.children.append(self.compileExpression(start + 1, end - 1))
             node.children.append(Node(self.tokens[end].type, self.tokens[end].value))
+            node.desc = '(exp)'
             return node
         if self._token_value(start) in unary_ops:  # unaryOp term
             node.children.append(Node(self.tokens[start].type, self.tokens[start].value))
             node.children.append(self.compileTerm(start + 1, end))
+            node.desc = 'unop(exp)'
             return node
         curr = start
         node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))
@@ -426,11 +431,14 @@ class CompilationEngine:
             node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))
             node.children.append(self.compileExpression(curr + 1, end - 1))
             node.children.append(Node(self.tokens[end].type, self.tokens[end].value))
+            node.desc = 'var[exp]'
             return node
         # subroutineCall
         if self._token_value(curr) == '(':  # subroutineName ( expressionList )
+            node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))
             node.children.append(self.compileExpressionList(curr + 1, end - 1))
             node.children.append(Node(self.tokens[end].type, self.tokens[end].value))
+            node.desc = 'f(exps)'
             return node
         if self._token_value(curr) == '.':  # a.b(expressionList)
             node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))
@@ -439,6 +447,7 @@ class CompilationEngine:
             node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))  # (
             node.children.append(self.compileExpressionList(curr + 1, end - 1))
             node.children.append(Node(self.tokens[end].type, self.tokens[end].value))
+            node.desc = 'a.b(exps)'
             return node
         return node
 
