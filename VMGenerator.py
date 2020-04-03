@@ -1,10 +1,10 @@
 from CompilationEngine import Node
 from FileHandler import FileHandler
 from SymbolTable import SymbolTable
-from VMWriter import write_call, write_push, write_function
+from VMWriter import write_call, write_push, write_function, write_pop, write_if, write_label, write_goto
 from constant import *
 
-op = {'+': 'add', '-': 'sub', '*': write_call('Math.multiply 2'), '/': write_call('Math.divide 2')}
+op = {'+': 'add', '-': 'sub', '*': write_call('Math.multiply 2'), '/': write_call('Math.divide 2'), '=': 'eq'}
 unop = {'-': 'neg', '~': 'not'}
 
 
@@ -13,6 +13,7 @@ class VMGenerator:
     def __init__(self):
         self.vm_code = []
         self.symbol_table = SymbolTable()
+        self.label_seq = 0
         self.current_class = ''
         self.process_options = {'class': self.process_class,
                                 'classVarDec': self.process_class_var_dec,
@@ -21,6 +22,7 @@ class VMGenerator:
                                 'subroutineBody': self.process_subroutine_body,
                                 'statements': self.process_statements,
                                 'doStatement': self.process_do,
+                                'letStatement': self.process_let,
                                 'returnStatement': self.process_return,
                                 'term': self.process_term,
                                 'expressionList': self.process_expression_list,
@@ -51,6 +53,7 @@ class VMGenerator:
             raise Exception('Cannot process subroutine node: {node}'.format(node=node))
         # format: method/function return_type name ( param_list ) body
         self.symbol_table.start_subroutine()
+        self.reset_seq()
         # method: this -> argument 0, function don't do this.
         subroutine_type = node.children[0].value
         arg_cnt = 0
@@ -98,8 +101,39 @@ class VMGenerator:
     def process_return(self, node: Node):
         # if no expression exist, return constant 0
         code = self.process_expression(node.children[1]) if node.children[1].type == 'expression' \
-            else [write_push('constant', 0)]
+            else [write_push('constant 0')]
         code.append('return')
+        return code
+
+    def process_if(self, node: Node):
+        # we don't consider elif in jack language
+        if node.desc not in ['if', 'if-else']:
+            raise Exception('If statement is neither if or if-else structured: {node}'.format(node=node))
+        expr_code = self.process_expression(node.children[2])
+        block_one = self.process_statements(node.children[5])
+        code = expr_code
+        label_1 = self.make_label()
+        code.append('not')
+        code.append(write_if(label_1))
+        code.extend(block_one)
+        if node.desc == 'if':
+            code.append(write_label(label_1))
+        elif node.desc == 'if-else':
+            label_2 = self.make_label()
+            code.append(write_goto(label_2))
+            code.append(write_label(label_1))
+            block_two = self.process_statements(node.children[9])
+            code.extend(block_two)
+            code.append(write_label(label_2))
+        return code
+
+    def process_let(self, node: Node):
+        # let var_name = expr;
+        # TODO: let var_name[expr] = expr;
+        var_node = node.children[1]
+        value_node = node.children[3]
+        code = self.process_expression(value_node)
+        code.append(write_pop(self.make_variable(var_node)))
         return code
 
     def process_do(self, node: Node):
@@ -188,3 +222,17 @@ class VMGenerator:
             # TODO: handle object and Class type differently (need to put obj into this pointer)
             obj_name = self.symbol_table.type_of(obj_name)
         return [write_call('{}.{}'.format(obj_name, func_name), n_args)]
+
+    def make_label(self):
+        """
+        Generate a label using Class seq
+        :return: a generated sequential label name
+        """
+        return '{}{}'.format(self.current_class, self.next_seq())
+
+    def next_seq(self):
+        self.label_seq += 1
+        return self.label_seq
+
+    def reset_seq(self):
+        self.label_seq = 0

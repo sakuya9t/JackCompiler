@@ -1,11 +1,9 @@
-def write_push(segment, index=None):
-    if index is None:
-        return 'push {}'.format(segment)
-    return 'push {} {}'.format(segment, index)
+def write_push(value):
+    return 'push {}'.format(value)
 
 
-def write_pop(segment, index):
-    return 'pop {} {}'.format(segment, index)
+def write_pop(value):
+    return 'pop {}'.format(value)
 
 
 def write_arithmetic(command):

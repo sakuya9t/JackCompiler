@@ -342,6 +342,7 @@ class CompilationEngine:
         curr = self.bracket_map[curr]
         node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))  # }
         if curr == end:
+            node.desc = 'if'
             return node
         curr += 1
         node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))  # else
@@ -350,6 +351,7 @@ class CompilationEngine:
         node.children.append(self.compileStatements(curr + 1, self.bracket_map[curr] - 1))
         curr = self.bracket_map[curr]
         node.children.append(Node(self.tokens[curr].type, self.tokens[curr].value))  # }
+        node.desc = 'if-else'
         return node
 
     def compileExpressionList(self, start, end):
