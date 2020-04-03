@@ -1,6 +1,7 @@
 from CompilationEngine import Node
+from FileHandler import FileHandler
 from SymbolTable import SymbolTable
-from VMWriter import write_call, write_push
+from VMWriter import write_call, write_push, write_function
 from constant import *
 
 op = {'+': 'add', '-': 'sub', '*': write_call('Math.multiply 2'), '/': write_call('Math.divide 2')}
@@ -13,22 +14,66 @@ class VMGenerator:
         self.vm_code = []
         self.symbol_table = SymbolTable()
         self.current_class = ''
-        self.process_options = {'classVarDec': self.process_class_var_dec,
+        self.process_options = {'class': self.process_class,
+                                'classVarDec': self.process_class_var_dec,
+                                'subroutineDec': self.process_subroutine,
+                                'parameterList': self.process_parameter_list,
                                 'subroutineBody': self.process_subroutine_body,
+                                'statements': self.process_statements,
                                 'doStatement': self.process_do,
                                 'returnStatement': self.process_return,
                                 'term': self.process_term,
                                 'expressionList': self.process_expression_list,
                                 'expression': self.process_expression}
 
+    def generate_vm_file(self, node: Node, filename: str):
+        code = self.process(node)
+        file_writer = FileHandler(None)
+        file_writer.refresh_content(code)
+        file_writer.write(filename)
+
     def process(self, node: Node):
         if node.type not in self.process_options.keys():
             raise ValueError('Cannot find handler for node type {}. Node: {}'.format(node.type, node))
         handler = self.process_options.get(node.type)
-        return handler()
+        return handler(node)
+
+    def process_class(self, node: Node):
+        self.current_class = node.children[1].value
+        code = []
+        for sub_node in node.children[2:]:
+            if sub_node.type != TOKEN_SYMBOL:
+                code.extend(self.process(sub_node))
+        return code
+
+    def process_subroutine(self, node: Node):
+        if len(node.children) != 7:
+            raise Exception('Cannot process subroutine node: {node}'.format(node=node))
+        # format: method/function return_type name ( param_list ) body
+        self.symbol_table.start_subroutine()
+        # method: this -> argument 0, function don't do this.
+        subroutine_type = node.children[0].value
+        arg_cnt = 0
+        if subroutine_type == 'method':
+            self.symbol_table.define(name='this', type=self.current_class, kind=KIND_ARGUMENT)
+            arg_cnt += 1
+        subroutine_name = node.children[2].value
+        func_label = '{}.{}'.format(self.current_class, subroutine_name)
+        arg_cnt += self.process_parameter_list(node.children[4])
+        code = [write_function(func_label, arg_cnt)]
+        code.extend(self.process_subroutine_body(node.children[6]))
+        return code
+
+    def process_parameter_list(self, node: Node):
+        i = 0
+        while i * 3 < len(node.children):
+            arg_type = node.children[i].value
+            arg_name = node.children[i+1].value
+            self.symbol_table.define(arg_name, arg_type, KIND_ARGUMENT)
+            i += 1
+        return (len(node.children) + 1) // 3
 
     def process_subroutine_body(self, node: Node):
-        self.symbol_table.start_subroutine()
         code = []
         for child in node.children:
             if child.type != TOKEN_SYMBOL:
@@ -43,6 +88,12 @@ class VMGenerator:
         for var_name in var_names:
             self.symbol_table.define(var_name, var_type, var_kind)
         return []
+
+    def process_statements(self, node: Node):
+        code = []
+        for sub_node in node.children:
+            code.extend(self.process(sub_node))
+        return code
 
     def process_return(self, node: Node):
         # if no expression exist, return constant 0

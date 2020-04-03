@@ -1,3 +1,5 @@
+import os
+
 KIND_STATIC = 'static'
 KIND_FIELD = 'field'
 KIND_ARGUMENT = 'argument'
@@ -10,3 +12,4 @@ TOKEN_STR = 'stringConstant'
 TOKEN_IDENTIFIER = 'identifier'
 
 HOME_PATH = 'C:/Users/sakuya/Dev'
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))

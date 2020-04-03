@@ -28,7 +28,19 @@ class VMGeneratorTest(unittest.TestCase):
         node.children.append(Node('identifier', 'y'))
         node.children.append(Node('symbol', ';'))
         generator.process_class_var_dec(node)
-        self.assertTrue(len(generator.symbol_table.class_table) == 2)
+        self.assertEqual(len(generator.symbol_table.class_table), 2)
+
+    def test_process_parameter_list(self):
+        generator = VMGenerator()
+        node = Node('parameterList', None, [])
+        arg_cnt = generator.process_parameter_list(node)
+        self.assertEqual(arg_cnt, 0)
+        self.assertEqual(len(generator.symbol_table.subroutine_table), 0)
+        node = Node('parameterList', None, [Node('keyword', 'int'), Node('identifier', 'Ax'), Node('symbol', ','),
+                                            Node('keyword', 'Object'), Node('identifier', 'Ay')])
+        arg_cnt = generator.process_parameter_list(node)
+        self.assertEqual(arg_cnt, 2)
+        self.assertEqual(len(generator.symbol_table.subroutine_table), 2)
 
     def test_process_do(self):
         generator = VMGenerator()
