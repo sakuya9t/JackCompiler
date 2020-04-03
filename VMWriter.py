@@ -25,7 +25,7 @@ def write_if(label):
 
 
 def write_call(name, nargs=None):
-    if not nargs:
+    if nargs is None:
         return 'call {}'.format(name)
     return 'call {} {}'.format(name, nargs)
 

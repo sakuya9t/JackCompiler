@@ -1,10 +1,23 @@
 import unittest
+from unittest.mock import Mock, patch
 from CompilationEngine import Node
 from VMGenerator import VMGenerator
 from constant import KIND_STATIC, KIND_ARGUMENT, KIND_FIELD, KIND_VAR
 
 
-class CompilerTest(unittest.TestCase):
+class VMGeneratorTest(unittest.TestCase):
+
+    @patch('VMGenerator.VMGenerator.process_class_var_dec')
+    @patch('VMGenerator.VMGenerator.process_expression_list')
+    def test_process(self, process_class_var_dec, process_expression_list):
+        generator = VMGenerator()
+        generator.process(Node('classVarDec', None))
+        generator.process(Node('expressionList', None))
+        with self.assertRaises(ValueError):
+            generator.process(Node('yellow_dog', None))
+        process_class_var_dec.assert_called()
+        process_expression_list.assert_called()
+
     def test_process_class_var_dec(self):
         generator = VMGenerator()
         node = Node('classVarDec', None)
@@ -103,10 +116,10 @@ class CompilerTest(unittest.TestCase):
         generator.current_class = 'MyObject'
         generator.symbol_table.define("a", "Object1", KIND_FIELD)
         generator.symbol_table.define("b", "Object2", KIND_STATIC)
-        self.assertEqual(generator.make_function('this', 'foo'), 'MyObject.foo')
-        self.assertEqual(generator.make_function('a', 'foo'), 'Object1.foo')
-        self.assertEqual(generator.make_function('b', 'foo'), 'Object2.foo')
-        self.assertEqual(generator.make_function('Object3', 'foo'), 'Object3.foo')
+        self.assertEqual(generator.make_function('this', 'foo', 0), ['call MyObject.foo 0'])
+        self.assertEqual(generator.make_function('a', 'foo', 1), ['call Object1.foo 1'])
+        self.assertEqual(generator.make_function('b', 'foo', 2), ['call Object2.foo 2'])
+        self.assertEqual(generator.make_function('Object3', 'foo', 3), ['call Object3.foo 3'])
 
 
 if __name__ == '__main__':

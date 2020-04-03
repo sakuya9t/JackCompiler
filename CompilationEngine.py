@@ -8,12 +8,12 @@ encode = {'<': '&lt;', '>': '&gt;', '&': '&amp;', '\"': '&quot;'}
 
 
 class Node:
-    type = None
+    type: str = None
     value = None
     children = []
     desc = None
 
-    def __init__(self, type, value, children=None, desc=None):
+    def __init__(self, type: str, value, children=None, desc=None):
         self.type = type
         self.value = value
         self.children = [] if children is None else children

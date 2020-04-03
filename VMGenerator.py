@@ -8,15 +8,32 @@ unop = {'-': 'neg', '~': 'not'}
 
 
 class VMGenerator:
+
     def __init__(self):
         self.vm_code = []
         self.symbol_table = SymbolTable()
         self.current_class = ''
+        self.process_options = {'classVarDec': self.process_class_var_dec,
+                                'subroutineBody': self.process_subroutine_body,
+                                'doStatement': self.process_do,
+                                'returnStatement': self.process_return,
+                                'term': self.process_term,
+                                'expressionList': self.process_expression_list,
+                                'expression': self.process_expression}
 
     def process(self, node: Node):
-        if node.type == 'classVarDec':
-            return self.process_class_var_dec(node)
-        return None
+        if node.type not in self.process_options.keys():
+            raise ValueError('Cannot find handler for node type {}. Node: {}'.format(node.type, node))
+        handler = self.process_options.get(node.type)
+        return handler()
+
+    def process_subroutine_body(self, node: Node):
+        self.symbol_table.start_subroutine()
+        code = []
+        for child in node.children:
+            if child.type != TOKEN_SYMBOL:
+                code.extend(self.process(child))
+        return code
 
     def process_class_var_dec(self, node: Node):
         # [kind, type, var name, var name]
@@ -44,7 +61,7 @@ class VMGenerator:
         obj_name = node.children[-7].value if len(node.children) == 8 else 'this'
         code = self.process_expression_list(node.children[-3])
         n_args = node.children[-3].desc['cnt']
-        code.append(write_call(self.make_function(obj_name, func_name), n_args))
+        code.extend(self.make_function(obj_name, func_name, n_args))
         return code
 
     def process_expression_list(self, node: Node):
@@ -77,14 +94,15 @@ class VMGenerator:
             return None
         if node.desc == 'f(exps)':
             code = self.process_expression_list(node.children[2])
-            code.append(write_call(self.make_function('this', node.children[0].value)))
+            exps_cnt = node.children[2].desc['cnt']
+            code.extend(self.make_function('this', node.children[0].value, exps_cnt))
             return code
         if node.desc == 'a.b(exps)':
             exps_cnt = node.children[4].desc['cnt']
             code = self.process_expression_list(node.children[4])
             obj_name = node.children[0].value
             func_name = node.children[2].value
-            code.append(write_call(self.make_function(obj_name, func_name), exps_cnt))
+            code.extend(self.make_function(obj_name, func_name, exps_cnt))
             return code
         raise Exception('Cannot compile node {node}'.format(node=str(node)))
 
@@ -105,11 +123,12 @@ class VMGenerator:
         index = self.symbol_table.index_of(name)
         return '{} {}'.format(kind, index)
 
-    def make_function(self, obj_name, func_name):
+    def make_function(self, obj_name, func_name, n_args):
         """
         Translate function name to Class.Method formation
         :param obj_name: class name or object name or 'this'
         :param func_name: function name
+        :param n_args: number of arguments
         :return: Class.Method formatted function
         """
         if obj_name == 'this':
@@ -117,4 +136,4 @@ class VMGenerator:
         elif self.symbol_table.is_variable(obj_name):
             # TODO: handle object and Class type differently (need to put obj into this pointer)
             obj_name = self.symbol_table.type_of(obj_name)
-        return '{}.{}'.format(obj_name, func_name)
+        return [write_call('{}.{}'.format(obj_name, func_name), n_args)]
