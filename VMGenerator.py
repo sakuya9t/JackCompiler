@@ -212,10 +212,8 @@ class VMGenerator:
     def process_term(self, node: Node):
         if node.desc == 'single':  # constant / variable
             sub_node = node.children[0]
-            if sub_node.value == 'true':
-                return [write_push('constant 0'), 'not']
-            elif sub_node.value == 'false':
-                return [write_push('constant 0')]
+            if sub_node.type == TOKEN_KEYWORD and sub_node.value != 'this':
+                return self.make_keyword(sub_node.value)
             elif sub_node.type == TOKEN_STR:
                 return self.process_string(sub_node)
             else:
@@ -240,7 +238,7 @@ class VMGenerator:
                 code.extend([write_push('{} {}'.format(
                     self.symbol_table.vm_kind_of(obj_name), self.symbol_table.index_of(obj_name)))])
             code.extend(self.process_expression_list(node.children[2]))
-            code.extend(self.make_function('this', node.children[0].value, exps_cnt))
+            code.extend(self.make_function(obj_name, func_name, exps_cnt))
             return code
         if node.desc == 'a.b(exps)':
             exps_cnt = node.children[4].desc['cnt']
@@ -310,6 +308,15 @@ class VMGenerator:
         :return: a generated sequential label name
         """
         return '{}{}'.format(self.current_class, self.next_seq())
+
+    @staticmethod
+    def make_keyword(value):
+        mappings = {'true': [write_push('constant 0'), 'not'],
+                    'false': [write_push('constant 0')],
+                    'null': [write_push('constant 0')]}
+        if value not in mappings.keys():
+            raise ValueError('Keyword {} not recorded to mapping values.'.format(value))
+        return mappings[value]
 
     def next_seq(self):
         self.label_seq += 1

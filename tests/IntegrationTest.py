@@ -11,6 +11,7 @@ CONVERT_TO_BIN = HOME_PATH + '/Nand2Tetris/nand2tetris/projects/11/ConvertToBin/
 SQUARE_DIR = HOME_PATH + '/Nand2Tetris/nand2tetris/projects/11/Square'
 AVERAGE = HOME_PATH + '/Nand2Tetris/nand2tetris/projects/11/Average/Main.jack'
 PONG_DIR = HOME_PATH + '/Nand2Tetris/nand2tetris/projects/11/Pong'
+COMPLEX_ARRAY = HOME_PATH + '/Nand2Tetris/nand2tetris/projects/11/ComplexArrays/Main.jack'
 
 
 class IntegrationTest(unittest.TestCase):
@@ -59,6 +60,14 @@ class IntegrationTest(unittest.TestCase):
                 code = generator.process(root_node)
                 correct_code = FileHandler(''.join([ROOT_DIR, '/output/Pong/', filename[:-5], '.vm'])).fileContent
                 self.assertEqual(correct_code, code)
+
+    def test_complex_array(self):
+        compiler = CompilationEngine(COMPLEX_ARRAY)
+        root_node = compiler.compile()
+        generator = VMGenerator()
+        code = generator.process(root_node)
+        correct_code = FileHandler(ROOT_DIR + '/output/ComplexArrays/Main.vm').fileContent
+        self.assertEqual(correct_code, code)
 
 
 if __name__ == '__main__':
