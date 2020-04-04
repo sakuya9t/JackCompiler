@@ -60,6 +60,9 @@ class SymbolTable:
     def local_cnt(self):
         return len([x for x in self.subroutine_table.values() if x['kind'] == KIND_VAR])
 
+    def static_cnt(self):
+        return len([x for x in self.class_table.values() if x['kind'] == KIND_STATIC])
+
     def __clear_seq(self, kind):
         self.seq[kind] = 0
 

@@ -67,7 +67,7 @@ class VMGenerator:
         subroutine_name = node.children[2].value
         func_label = '{}.{}'.format(self.current_class, subroutine_name)
         self.process_parameter_list(node.children[4])
-        arg_cnt = len(self.symbol_table.class_table)
+        arg_cnt = len(self.symbol_table.class_table) - self.symbol_table.static_cnt()
         constructor_piece = []
         if subroutine_type == SUBROUTINE_CONSTRUCTOR:
             self.symbol_table.define('this', self.current_class, KIND_POINTER)
@@ -182,7 +182,11 @@ class VMGenerator:
             raise Exception('Do statement is not f(args) or a.b(args) formatted. Node: {node}'.format(node=node))
         func_name = node.children[-5].value
         obj_name = node.children[-7].value if len(node.children) == 8 else 'this'
-        code = self.process_expression_list(node.children[-3])
+        code = []
+        if self.symbol_table.is_variable(obj_name):
+            code.extend([write_push('{} {}'.format(
+                self.symbol_table.vm_kind_of(obj_name), self.symbol_table.index_of(obj_name)))])
+        code.extend(self.process_expression_list(node.children[-3]))
         n_args = node.children[-3].desc['cnt']
         code.extend(self.make_function(obj_name, func_name, n_args))
         code.append(write_pop('temp 0'))  # void function return
@@ -228,14 +232,24 @@ class VMGenerator:
             code.extend(['add', 'pop pointer 1', 'push that 0'])  # *(arr[exp])
             return code
         if node.desc == 'f(exps)':
-            code = self.process_expression_list(node.children[2])
+            obj_name = 'this'
+            func_name = node.children[0].value
             exps_cnt = node.children[2].desc['cnt']
+            code = []
+            if self.symbol_table.is_variable(obj_name):
+                code.extend([write_push('{} {}'.format(
+                    self.symbol_table.vm_kind_of(obj_name), self.symbol_table.index_of(obj_name)))])
+            code.extend(self.process_expression_list(node.children[2]))
             code.extend(self.make_function('this', node.children[0].value, exps_cnt))
             return code
         if node.desc == 'a.b(exps)':
             exps_cnt = node.children[4].desc['cnt']
-            code = self.process_expression_list(node.children[4])
             obj_name = node.children[0].value
+            code = []
+            if self.symbol_table.is_variable(obj_name):
+                code.extend([write_push('{} {}'.format(
+                    self.symbol_table.vm_kind_of(obj_name), self.symbol_table.index_of(obj_name)))])
+            code.extend(self.process_expression_list(node.children[4]))
             func_name = node.children[2].value
             code.extend(self.make_function(obj_name, func_name, exps_cnt))
             return code
@@ -284,7 +298,6 @@ class VMGenerator:
         if self.symbol_table.is_variable(obj_name):
             kind = self.symbol_table.vm_kind_of(obj_name)
             index = self.symbol_table.index_of(obj_name)
-            code.extend([write_push('{} {}'.format(kind, index))])
             obj_name = self.symbol_table.type_of(obj_name)
             n_args += 1
         # Class.func

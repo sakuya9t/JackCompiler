@@ -10,6 +10,7 @@ FILE_SEVEN = HOME_PATH + '/Nand2Tetris/nand2tetris/projects/11/Seven/Main.jack'
 CONVERT_TO_BIN = HOME_PATH + '/Nand2Tetris/nand2tetris/projects/11/ConvertToBin/Main.jack'
 SQUARE_DIR = HOME_PATH + '/Nand2Tetris/nand2tetris/projects/11/Square'
 AVERAGE = HOME_PATH + '/Nand2Tetris/nand2tetris/projects/11/Average/Main.jack'
+PONG_DIR = HOME_PATH + '/Nand2Tetris/nand2tetris/projects/11/Pong'
 
 
 class IntegrationTest(unittest.TestCase):
@@ -47,6 +48,17 @@ class IntegrationTest(unittest.TestCase):
         code = generator.process(root_node)
         correct_code = FileHandler(ROOT_DIR + '/output/Average/Main.vm').fileContent
         self.assertEqual(correct_code, code)
+
+    def test_pong(self):
+        file_names = os.listdir(PONG_DIR)
+        for filename in file_names:
+            if filename[-5:] == '.jack':
+                compiler = CompilationEngine(PONG_DIR + '/' + filename)
+                root_node = compiler.compile()
+                generator = VMGenerator()
+                code = generator.process(root_node)
+                correct_code = FileHandler(''.join([ROOT_DIR, '/output/Pong/', filename[:-5], '.vm'])).fileContent
+                self.assertEqual(correct_code, code)
 
 
 if __name__ == '__main__':

@@ -157,6 +157,20 @@ class VMGeneratorTest(unittest.TestCase):
                      Node('symbol', ')'), Node('symbol', ';')])
         self.assertEqual(generator.process_do(node), ['push constant 2', 'push constant 3', 'call Memory.test 2',
                                                       'pop temp 0'])
+        generator.symbol_table.define('a', 'Object', KIND_VAR)
+        node = Node('doStatement', None,
+                    [Node('keyword', 'do'), Node('identifier', 'a'), Node('symbol', '.'),
+                     Node('identifier', 'test'), Node('symbol', '('),
+                     Node('expressionList',
+                          None,
+                          [Node('expression', None, [Node('term', None, [Node('integerConstant', '2')], 'single')]),
+                           Node('symbol', ','),
+                           Node('expression', None, [Node('term', None, [Node('integerConstant', '3')], 'single')])],
+                          {'cnt': 2}),
+                     Node('symbol', ')'), Node('symbol', ';')])
+        self.assertEqual(generator.process_do(node),
+                         ['push local 0', 'push constant 2', 'push constant 3',
+                          'call Object.test 3', 'pop temp 0'])
 
     def test_process_return(self):
         generator = VMGenerator()
@@ -239,6 +253,15 @@ class VMGeneratorTest(unittest.TestCase):
         self.assertEqual(generator.process_term(node),
                          ['push constant 1', 'push constant 2', 'add', 'push constant 1', 'push constant 2',
                           'call Math.multiply 2', 'call SquareGame.new 2'])
+        generator.symbol_table.define('a', 'Object', KIND_VAR)
+        node = Node('term', None, desc='a.b(exps)')
+        node.children = [Node('identifier', 'a'), Node('symbol', '.'), Node('identifier', 'test'),
+                         Node('symbol', '('),
+                         Node('expressionList', None, [exp1, Node('symbol', ','), exp2], {'cnt': 2}),
+                         Node('symbol', ')')]
+        self.assertEqual(generator.process_term(node),
+                         ['push local 0', 'push constant 1', 'push constant 2', 'add', 'push constant 1',
+                          'push constant 2', 'call Math.multiply 2', 'call Object.test 3'])
 
     def test_process_string(self):
         generator = VMGenerator()
@@ -273,9 +296,9 @@ class VMGeneratorTest(unittest.TestCase):
         generator.symbol_table.define('this', 'MyObject', KIND_ARGUMENT)
         generator.symbol_table.define("a", "Object1", KIND_FIELD)
         generator.symbol_table.define("b", "Object2", KIND_STATIC)
-        self.assertEqual(generator.make_function('this', 'foo', 0), ['push argument 0', 'call MyObject.foo 1'])
-        self.assertEqual(generator.make_function('a', 'foo', 1), ['push this 0', 'call Object1.foo 2'])
-        self.assertEqual(generator.make_function('b', 'foo', 2), ['push static 0', 'call Object2.foo 3'])
+        self.assertEqual(generator.make_function('this', 'foo', 0), ['call MyObject.foo 1'])
+        self.assertEqual(generator.make_function('a', 'foo', 1), ['call Object1.foo 2'])
+        self.assertEqual(generator.make_function('b', 'foo', 2), ['call Object2.foo 3'])
         self.assertEqual(generator.make_function('Object3', 'foo', 3), ['call Object3.foo 3'])
 
     def test_constructor(self):
@@ -318,7 +341,7 @@ class VMGeneratorTest(unittest.TestCase):
                      Node('subroutineBody', None,
                           [Node('symbol', '{'), statements, Node('symbol', '}')])])
         code = generator.process_subroutine(node)
-        self.assertEqual(code, ['function Point.new 0', 'push constant 3', 'call Memory.alloc 1', 'pop pointer 0',
+        self.assertEqual(code, ['function Point.new 0', 'push constant 2', 'call Memory.alloc 1', 'pop pointer 0',
                                 'push argument 0', 'pop this 0', 'push argument 1', 'pop this 1',
                                 'push static 0', 'push constant 1', 'add', 'pop static 0', 'push pointer 0',
                                 'return'])
