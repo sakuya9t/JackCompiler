@@ -4,7 +4,8 @@ from SymbolTable import SymbolTable
 from VMWriter import write_call, write_push, write_function, write_pop, write_if, write_label, write_goto
 from constant import *
 
-op = {'+': 'add', '-': 'sub', '*': write_call('Math.multiply 2'), '/': write_call('Math.divide 2'), '=': 'eq'}
+op = {'+': 'add', '-': 'sub', '*': write_call('Math.multiply 2'), '/': write_call('Math.divide 2'), '=': 'eq',
+      '>': 'gt', '<': 'lt', '&': 'and', '|': 'or'}
 unop = {'-': 'neg', '~': 'not'}
 
 
@@ -17,10 +18,13 @@ class VMGenerator:
         self.current_class = ''
         self.process_options = {'class': self.process_class,
                                 'classVarDec': self.process_class_var_dec,
+                                'varDec': self.process_var_dec,
                                 'subroutineDec': self.process_subroutine,
                                 'parameterList': self.process_parameter_list,
                                 'subroutineBody': self.process_subroutine_body,
                                 'statements': self.process_statements,
+                                'ifStatement': self.process_if,
+                                'whileStatement': self.process_while,
                                 'doStatement': self.process_do,
                                 'letStatement': self.process_let,
                                 'returnStatement': self.process_return,
@@ -56,22 +60,21 @@ class VMGenerator:
         self.reset_seq()
         # method: this -> argument 0, function don't do this.
         subroutine_type = node.children[0].value
-        arg_cnt = 0
         if subroutine_type == 'method':
             self.symbol_table.define(name='this', type=self.current_class, kind=KIND_ARGUMENT)
-            arg_cnt += 1
         subroutine_name = node.children[2].value
         func_label = '{}.{}'.format(self.current_class, subroutine_name)
-        arg_cnt += self.process_parameter_list(node.children[4])
-        code = [write_function(func_label, arg_cnt)]
-        code.extend(self.process_subroutine_body(node.children[6]))
+        self.process_parameter_list(node.children[4])
+        body_code = self.process_subroutine_body(node.children[6])
+        arg_cnt = self.symbol_table.local_cnt()
+        code = [write_function(func_label, arg_cnt)] + body_code
         return code
 
     def process_parameter_list(self, node: Node):
         i = 0
         while i * 3 < len(node.children):
-            arg_type = node.children[i].value
-            arg_name = node.children[i+1].value
+            arg_type = node.children[i*3].value
+            arg_name = node.children[i*3+1].value
             self.symbol_table.define(arg_name, arg_type, KIND_ARGUMENT)
             i += 1
         return (len(node.children) + 1) // 3
@@ -90,6 +93,13 @@ class VMGenerator:
         var_names = [n.value for n in node.children[2:] if n.type == TOKEN_IDENTIFIER]
         for var_name in var_names:
             self.symbol_table.define(var_name, var_type, var_kind)
+        return []
+
+    def process_var_dec(self, node: Node):
+        var_type = node.children[1].value
+        for i in range(2, len(node.children)):
+            if node.children[i].type == 'identifier':
+                self.symbol_table.define(node.children[i].value, var_type, KIND_VAR)
         return []
 
     def process_statements(self, node: Node):
@@ -127,6 +137,15 @@ class VMGenerator:
             code.append(write_label(label_2))
         return code
 
+    def process_while(self, node: Node):
+        condition_code = self.process_expression(node.children[2])
+        block_code = self.process_statements(node.children[5])
+        start_label = self.make_label()
+        end_label = self.make_label()
+        code = [write_label(start_label)] + condition_code + ['not'] + [write_if(end_label)] + block_code + \
+               [write_goto(start_label)] + [write_label(end_label)]
+        return code
+
     def process_let(self, node: Node):
         # let var_name = expr;
         # TODO: let var_name[expr] = expr;
@@ -147,6 +166,7 @@ class VMGenerator:
         code = self.process_expression_list(node.children[-3])
         n_args = node.children[-3].desc['cnt']
         code.extend(self.make_function(obj_name, func_name, n_args))
+        code.append(write_pop('temp 0'))  # void function return
         return code
 
     def process_expression_list(self, node: Node):
@@ -168,11 +188,17 @@ class VMGenerator:
 
     def process_term(self, node: Node):
         if node.desc == 'single':  # constant / variable
-            return [write_push(self.make_variable(node.children[0]))]
+            sub_node = node.children[0]
+            if sub_node.value == 'true':
+                return [write_push('constant 0'), 'not']
+            elif sub_node.value == 'false':
+                return [write_push('constant 0')]
+            else:
+                return [write_push(self.make_variable(sub_node))]
         if node.desc == '(exp)':
             return self.process_expression(node.children[1])
         if node.desc == 'unop(exp)':
-            code = self.process_expression(node.children[2])
+            code = self.process_term(node.children[1])
             code.append(unop[node.children[0].value])
             return code
         if node.desc == 'var[exp]':  # todo

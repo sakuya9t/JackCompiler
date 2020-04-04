@@ -29,6 +29,20 @@ class VMGeneratorTest(unittest.TestCase):
         node.children.append(Node('symbol', ';'))
         generator.process_class_var_dec(node)
         self.assertEqual(len(generator.symbol_table.class_table), 2)
+        self.assertEqual(len(generator.symbol_table.subroutine_table), 0)
+
+    def test_process_var_dec(self):
+        generator = VMGenerator()
+        node = Node('varDec', None)
+        node.children.append(Node('keyword', 'var'))
+        node.children.append(Node('keyword', 'int'))
+        node.children.append(Node('identifier', 'x'))
+        node.children.append(Node('symbol', ','))
+        node.children.append(Node('identifier', 'y'))
+        node.children.append(Node('symbol', ';'))
+        generator.process_var_dec(node)
+        self.assertEqual(len(generator.symbol_table.class_table), 0)
+        self.assertEqual(len(generator.symbol_table.subroutine_table), 2)
 
     def test_process_parameter_list(self):
         generator = VMGenerator()
@@ -41,6 +55,8 @@ class VMGeneratorTest(unittest.TestCase):
         arg_cnt = generator.process_parameter_list(node)
         self.assertEqual(arg_cnt, 2)
         self.assertEqual(len(generator.symbol_table.subroutine_table), 2)
+        self.assertTrue('Ax' in generator.symbol_table.subroutine_table.keys())
+        self.assertTrue('Ay' in generator.symbol_table.subroutine_table.keys())
 
     def test_process_if(self):
         generator = VMGenerator()
@@ -59,12 +75,13 @@ class VMGeneratorTest(unittest.TestCase):
         statements_2 = Node('statements', None,
                             [Node('letStatement', None,
                                   [Node('keyword', 'let'), Node('identifier', 'x'), Node('symbol', '='),
-                                   Node('expression', None, [Node('term', None, [Node('integerConstant', '1')], 'single'),
-                                                             Node('symbol', '+'),
-                                                             Node('term', None, [Node('integerConstant', '2')], 'single'),
-                                                             Node('symbol', '*'),
-                                                             Node('term', None, [Node('identifier', 'x')], 'single')
-                                                             ])
+                                   Node('expression', None,
+                                        [Node('term', None, [Node('integerConstant', '1')], 'single'),
+                                         Node('symbol', '+'),
+                                         Node('term', None, [Node('integerConstant', '2')], 'single'),
+                                         Node('symbol', '*'),
+                                         Node('term', None, [Node('identifier', 'x')], 'single')
+                                         ])
                                    ])
                              ])
         node = Node('ifStatement', None, [Node('keyword', 'if'), Node('symbol', '('), condition, Node('symbol', ')'),
@@ -74,15 +91,38 @@ class VMGeneratorTest(unittest.TestCase):
                     desc='if-else')
         code = generator.process_if(node)
         self.assertEqual(code, ['push local 0', 'push constant 1', 'eq', 'not', 'if-goto Test1',
-                                'call Memory.test 0', 'goto Test2', 'label Test1', 'push constant 1', 'push constant 2',
-                                'add', 'push local 0', 'call Math.multiply 2', 'pop local 0', 'label Test2'])
+                                'call Memory.test 0', 'pop temp 0', 'goto Test2', 'label Test1', 'push constant 1',
+                                'push constant 2', 'add', 'push local 0', 'call Math.multiply 2', 'pop local 0',
+                                'label Test2'])
         generator.reset_seq()
         node = Node('ifStatement', None, [Node('keyword', 'if'), Node('symbol', '('), condition, Node('symbol', ')'),
                                           Node('symbol', '{'), statements_1, Node('symbol', '}')],
                     desc='if')
         code = generator.process_if(node)
         self.assertEqual(code, ['push local 0', 'push constant 1', 'eq', 'not', 'if-goto Test1',
-                                'call Memory.test 0', 'label Test1'])
+                                'call Memory.test 0', 'pop temp 0', 'label Test1'])
+
+    def test_process_while(self):
+        generator = VMGenerator()
+        generator.current_class = 'Test'
+        generator.symbol_table.define('x', 'int', KIND_FIELD)
+        condition = Node('expression', None, [Node('term', None, [Node('identifier', 'x')], 'single'),
+                                              Node('symbol', '='),
+                                              Node('term', None, [Node('integerConstant', '1')], 'single')])
+        loop_body = Node('statements', None,
+                         [Node('doStatement', None,
+                               [Node('keyword', 'do'), Node('identifier', 'Memory'), Node('symbol', '.'),
+                                Node('identifier', 'test'), Node('symbol', '('),
+                                Node('expressionList', None,
+                                     [Node('expression', None, [Node('term', None, [Node('integerConstant', '2')], 'single')])],
+                                     {'cnt': 1}),
+                                Node('symbol', ')'), Node('symbol', ';')])
+                          ])
+        node = Node('ifStatement', None, [Node('keyword', 'while'), Node('symbol', '('), condition, Node('symbol', ')'),
+                                          Node('symbol', '{'), loop_body, Node('symbol', '}')])
+        code = generator.process_while(node)
+        self.assertEqual(code, ['label Test1', 'push this 0', 'push constant 1', 'eq', 'not', 'if-goto Test2',
+                                'push constant 2', 'call Memory.test 1', 'pop temp 0', 'goto Test1', 'label Test2'])
 
     def test_process_let(self):
         generator = VMGenerator()
@@ -111,7 +151,8 @@ class VMGeneratorTest(unittest.TestCase):
                            Node('expression', None, [Node('term', None, [Node('integerConstant', '3')], 'single')])],
                           {'cnt': 2}),
                      Node('symbol', ')'), Node('symbol', ';')])
-        self.assertEqual(generator.process_do(node), ['push constant 2', 'push constant 3', 'call Memory.test 2'])
+        self.assertEqual(generator.process_do(node), ['push constant 2', 'push constant 3', 'call Memory.test 2',
+                                                      'pop temp 0'])
 
     def test_process_return(self):
         generator = VMGenerator()
@@ -156,13 +197,15 @@ class VMGeneratorTest(unittest.TestCase):
 
         # unop(exp)
         node = Node('term', None, desc='unop(exp)')
-        node.children = [Node('symbol', '-'), Node('symbol', '('), exp1, Node('symbol', ')')]
+        node.children = [Node('symbol', '-'),
+                         Node('term', None, [Node('symbol', '('), exp1, Node('symbol', ')')], '(exp)')]
         self.assertEqual(generator.process_term(node), ['push constant 1', 'push constant 2', 'add', 'neg'])
 
         # a.b(exps)
         node = Node('term', None, desc='a.b(exps)')
         node.children = [Node('identifier', 'SquareGame'), Node('symbol', '.'), Node('identifier', 'new'),
-                         Node('symbol', '('), Node('expressionList', None, [exp1, Node('symbol', ','), exp2], {'cnt': 2}),
+                         Node('symbol', '('),
+                         Node('expressionList', None, [exp1, Node('symbol', ','), exp2], {'cnt': 2}),
                          Node('symbol', ')')]
         self.assertEqual(generator.process_term(node),
                          ['push constant 1', 'push constant 2', 'add', 'push constant 1', 'push constant 2',

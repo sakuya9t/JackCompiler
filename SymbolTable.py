@@ -56,6 +56,9 @@ class SymbolTable:
             return self.class_table[name]['id']
         raise ValueError('Symbol with name {} not found.'.format(name))
 
+    def local_cnt(self):
+        return len([x for x in self.subroutine_table.values() if x['kind'] == KIND_VAR])
+
     def __clear_seq(self, kind):
         self.seq[kind] = 0
 
