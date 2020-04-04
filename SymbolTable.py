@@ -1,13 +1,14 @@
-from constant import KIND_STATIC, KIND_FIELD, KIND_ARGUMENT, KIND_VAR
+from constant import KIND_STATIC, KIND_FIELD, KIND_ARGUMENT, KIND_VAR, KIND_POINTER
 
 
 class SymbolTable:
-    kind_map = {KIND_STATIC: KIND_STATIC, KIND_FIELD: 'this', KIND_ARGUMENT: KIND_ARGUMENT, KIND_VAR: 'local'}
+    kind_map = {KIND_STATIC: KIND_STATIC, KIND_FIELD: 'this', KIND_ARGUMENT: KIND_ARGUMENT, KIND_VAR: 'local',
+                KIND_POINTER: 'pointer'}
 
     def __init__(self):
         self.class_table = {}
         self.subroutine_table = {}
-        self.seq = {KIND_STATIC: 0, KIND_FIELD: 0, KIND_ARGUMENT: 0, KIND_VAR: 0}
+        self.seq = {KIND_STATIC: 0, KIND_FIELD: 0, KIND_ARGUMENT: 0, KIND_VAR: 0, KIND_POINTER: 0}
 
     def start_subroutine(self):
         self.subroutine_table = {}

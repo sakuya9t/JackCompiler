@@ -8,6 +8,7 @@ class FileHandler:
         file_object = open(filename)
         try:
             self.fileContent = file_object.readlines()
+            self.fileContent = [s.replace("\n", "") for s in self.fileContent]
         finally:
             file_object.close()
 

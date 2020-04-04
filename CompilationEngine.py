@@ -111,7 +111,7 @@ class CompilationEngine:
 
     def isSubroutine(self, start, end):
         curr = start
-        if self._token_value(curr) not in ['constructor', 'function', 'method']:
+        if self._token_value(curr) not in [SUBROUTINE_CONSTRUCTOR, SUBROUTINE_FUNCTION, SUBROUTINE_METHOD]:
             return False
         while curr <= end and self._token_value(curr) != ')':
             curr += 1

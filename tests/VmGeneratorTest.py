@@ -114,7 +114,8 @@ class VMGeneratorTest(unittest.TestCase):
                                [Node('keyword', 'do'), Node('identifier', 'Memory'), Node('symbol', '.'),
                                 Node('identifier', 'test'), Node('symbol', '('),
                                 Node('expressionList', None,
-                                     [Node('expression', None, [Node('term', None, [Node('integerConstant', '2')], 'single')])],
+                                     [Node('expression', None,
+                                           [Node('term', None, [Node('integerConstant', '2')], 'single')])],
                                      {'cnt': 1}),
                                 Node('symbol', ')'), Node('symbol', ';')])
                           ])
@@ -232,6 +233,49 @@ class VMGeneratorTest(unittest.TestCase):
         self.assertEqual(generator.make_function('a', 'foo', 1), ['call Object1.foo 1'])
         self.assertEqual(generator.make_function('b', 'foo', 2), ['call Object2.foo 2'])
         self.assertEqual(generator.make_function('Object3', 'foo', 3), ['call Object3.foo 3'])
+
+    def test_constructor(self):
+        generator = VMGenerator()
+        generator.current_class = 'Point'
+        generator.symbol_table.define('x', 'int', KIND_FIELD)
+        generator.symbol_table.define('y', 'int', KIND_FIELD)
+        generator.symbol_table.define('pointCount', 'int', KIND_STATIC)
+        statements = Node('statements', None, [
+            Node('letStatement', None,
+                 [Node('keyword', 'let'), Node('identifier', 'x'), Node('symbol', '='),
+                  Node('expression', None, [Node('term', None, [Node('identifier', 'ax')], 'single')])
+                  ]),
+
+            Node('letStatement', None,
+                 [Node('keyword', 'let'), Node('identifier', 'y'), Node('symbol', '='),
+                  Node('expression', None, [Node('term', None, [Node('identifier', 'ay')], 'single')])
+                  ]),
+
+            Node('letStatement', None,
+                 [Node('keyword', 'let'), Node('identifier', 'pointCount'), Node('symbol', '='),
+                  Node('expression', None, [Node('term', None, [Node('identifier', 'pointCount')], 'single'),
+                                            Node('symbol', '+'),
+                                            Node('term', None, [Node('integerConstant', '1')], 'single')
+                                            ])
+                  ]),
+            Node('returnStatement', None,
+                 [Node('keyword', 'return'),
+                  Node('expression', None, [Node('term', None, [Node('identifier', 'this')], 'single')]),
+                  Node('symbol', ';')])
+        ])
+        param_list = Node('parameterList', None, [Node('keyword', 'int'), Node('identifier', 'ax'), Node('symbol', ','),
+                                                  Node('keyword', 'int'), Node('identifier', 'ay')])
+        node = Node('subroutineDec', None,
+                    [Node('keyword', 'constructor'), Node('identifier', 'Point'), Node('identifier', 'new'),
+                     Node('symbol', '('), param_list, Node('symbol', ')'),
+                     Node('subroutineBody', None,
+                          [Node('symbol', '{'), statements, Node('symbol', '}')])])
+        code = generator.process_subroutine(node)
+        print(code)
+        self.assertEqual(code, ['function Point.new 0', 'push constant 2', 'call Memory.alloc 1', 'pop pointer 0',
+                                'push argument 0', 'pop this 0', 'push argument 1', 'pop this 1',
+                                'push static 0', 'push constant 1', 'add', 'pop static 0', 'push pointer 0',
+                                'return'])
 
 
 if __name__ == '__main__':

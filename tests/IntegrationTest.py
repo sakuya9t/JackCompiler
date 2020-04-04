@@ -1,6 +1,7 @@
 import unittest
 
 from CompilationEngine import CompilationEngine
+from FileHandler import FileHandler
 from VMGenerator import VMGenerator
 from constant import HOME_PATH, ROOT_DIR
 
@@ -14,18 +15,16 @@ class IntegrationTest(unittest.TestCase):
         root_node = compiler.compile()
         generator = VMGenerator()
         code = generator.process(root_node)
-        print(code)
-        generator.generate_vm_file(root_node, ROOT_DIR + '/output/Seven/Main.vm')
-        self.assertTrue(True)
+        correct_code = FileHandler(ROOT_DIR + '/output/Seven/Main.vm').fileContent
+        self.assertEqual(correct_code, code)
 
     def test_convert_to_bin(self):
         compiler = CompilationEngine(CONVERT_TO_BIN)
         root_node = compiler.compile()
         generator = VMGenerator()
         code = generator.process(root_node)
-        print(code)
-        generator.generate_vm_file(root_node, ROOT_DIR + '/output/ConvertToBin/Main.vm')
-        self.assertTrue(True)
+        correct_code = FileHandler(ROOT_DIR + '/output/ConvertToBin/Main.vm').fileContent
+        self.assertEqual(correct_code, code)
 
 
 if __name__ == '__main__':

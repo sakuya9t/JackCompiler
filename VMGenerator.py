@@ -55,26 +55,32 @@ class VMGenerator:
     def process_subroutine(self, node: Node):
         if len(node.children) != 7:
             raise Exception('Cannot process subroutine node: {node}'.format(node=node))
-        # format: method/function return_type name ( param_list ) body
+        # format: method/function/constructor return_type name ( param_list ) body
         self.symbol_table.start_subroutine()
         self.reset_seq()
         # method: this -> argument 0, function don't do this.
         subroutine_type = node.children[0].value
-        if subroutine_type == 'method':
+        if subroutine_type == SUBROUTINE_METHOD:
             self.symbol_table.define(name='this', type=self.current_class, kind=KIND_ARGUMENT)
         subroutine_name = node.children[2].value
         func_label = '{}.{}'.format(self.current_class, subroutine_name)
-        self.process_parameter_list(node.children[4])
+        arg_cnt = self.process_parameter_list(node.children[4])
+        constructor_piece = []
+        if subroutine_type == SUBROUTINE_CONSTRUCTOR:
+            self.symbol_table.define('this', self.current_class, KIND_POINTER)
+            constructor_piece = [write_push('constant {}'.format(arg_cnt)),
+                                 write_call('Memory.alloc', 1),
+                                 write_pop('pointer 0')]
         body_code = self.process_subroutine_body(node.children[6])
-        arg_cnt = self.symbol_table.local_cnt()
-        code = [write_function(func_label, arg_cnt)] + body_code
+        local_var_cnt = self.symbol_table.local_cnt()
+        code = [write_function(func_label, local_var_cnt)] + constructor_piece + body_code
         return code
 
     def process_parameter_list(self, node: Node):
         i = 0
         while i * 3 < len(node.children):
-            arg_type = node.children[i*3].value
-            arg_name = node.children[i*3+1].value
+            arg_type = node.children[i * 3].value
+            arg_name = node.children[i * 3 + 1].value
             self.symbol_table.define(arg_name, arg_type, KIND_ARGUMENT)
             i += 1
         return (len(node.children) + 1) // 3
@@ -182,7 +188,7 @@ class VMGenerator:
         i = 2
         while i < len(node.children):
             code.extend(self.process_term(node.children[i]))
-            code.append(op[node.children[i-1].value])
+            code.append(op[node.children[i - 1].value])
             i += 2
         return code
 
