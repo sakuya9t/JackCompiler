@@ -156,13 +156,23 @@ class VMGenerator:
         return code
 
     def process_let(self, node: Node):
-        # let var_name = expr;
-        # TODO: let var_name[expr] = expr;
-        var_node = node.children[1]
-        value_node = node.children[3]
-        code = self.process_expression(value_node)
-        code.append(write_pop(self.make_variable(var_node)))
-        return code
+        if len(node.children) == 5:  # let var_name = expr;
+            var_node = node.children[1]
+            value_node = node.children[3]
+            code = self.process_expression(value_node)
+            code.append(write_pop(self.make_variable(var_node)))
+            return code
+        elif len(node.children) == 8:  # let var_name[expr] = expr;
+            arr_node = node.children[1]
+            index_expr = node.children[3]
+            value_node = node.children[6]
+            code = [write_push(self.make_variable(arr_node))]  # push arr
+            code.extend(self.process_expression(index_expr))  # exp1
+            code.extend(['add'])
+            code.extend(self.process_expression(value_node))  # exp2
+            code.extend(['pop temp 0', 'pop pointer 1', 'push temp 0', 'pop that 0'])
+            return code
+        raise Exception('Node {} is not a legal letStatement node.'.format(node))
 
     def process_do(self, node: Node):
         # there is no a.b.c(args) call, so don't consider it.
@@ -202,6 +212,8 @@ class VMGenerator:
                 return [write_push('constant 0'), 'not']
             elif sub_node.value == 'false':
                 return [write_push('constant 0')]
+            elif sub_node.type == TOKEN_STR:
+                return self.process_string(sub_node)
             else:
                 return [write_push(self.make_variable(sub_node))]
         if node.desc == '(exp)':
@@ -210,8 +222,11 @@ class VMGenerator:
             code = self.process_term(node.children[1])
             code.append(unop[node.children[0].value])
             return code
-        if node.desc == 'var[exp]':  # todo
-            return None
+        if node.desc == 'var[exp]':
+            code = [write_push(self.make_variable(node.children[0]))]  # push arr
+            code.extend(self.process_expression(node.children[2]))  # exp
+            code.extend(['add', 'pop pointer 1', 'push that 0'])  # *(arr[exp])
+            return code
         if node.desc == 'f(exps)':
             code = self.process_expression_list(node.children[2])
             exps_cnt = node.children[2].desc['cnt']
@@ -226,16 +241,30 @@ class VMGenerator:
             return code
         raise Exception('Cannot compile node {node}'.format(node=str(node)))
 
+    @staticmethod
+    def process_string(string_node: Node):
+        """
+        Since OS api don't have function to construct a string, have to allocate a new one and append each char.
+        :param string_node: term node which is a single string
+        :return: Code handling the string creation
+        """
+        if string_node.type != TOKEN_STR:
+            raise Exception('Node {} is not a string node.'.format(string_node))
+        s = string_node.value
+        code = ['push constant {}'.format(len(s)), write_call('String.new', 1)]  # create a new string
+        for c in s:
+            code.extend(['push constant {}'.format(ord(c)), write_call('String.appendChar', 2)])  # append a character
+        return code
+
     def make_variable(self, variable_like_node):
         """
         Translate node contains a variable to something like 'local 4', 'var 3'.
         If not containing a variable, return itself. It can be a constant.
-        TODO: Currently we are not considering string constant.
         :param variable_like_node: a name of variable
         :return: translated format generated using symbol table
         """
         if variable_like_node.type == TOKEN_STR:
-            raise Exception('String constant not supported')
+            raise Exception('String node {} should be handled in func process_string.'.format(variable_like_node))
         if variable_like_node.type == TOKEN_INT:
             return 'constant {}'.format(variable_like_node.value)
         name = variable_like_node.value

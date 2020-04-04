@@ -82,7 +82,8 @@ class VMGeneratorTest(unittest.TestCase):
                                          Node('term', None, [Node('integerConstant', '2')], 'single'),
                                          Node('symbol', '*'),
                                          Node('term', None, [Node('identifier', 'x')], 'single')
-                                         ])
+                                         ]),
+                                   Node('symbol', ';')
                                    ])
                              ])
         node = Node('ifStatement', None, [Node('keyword', 'if'), Node('symbol', '('), condition, Node('symbol', ')'),
@@ -136,7 +137,8 @@ class VMGeneratorTest(unittest.TestCase):
                                                Node('term', None, [Node('integerConstant', '2')], 'single'),
                                                Node('symbol', '*'),
                                                Node('term', None, [Node('identifier', 'x')], 'single')
-                                               ])])
+                                               ]),
+                     Node('symbol', ';')])
         code = generator.process_let(node)
         self.assertEqual(code, ['push constant 1', 'push constant 2', 'add', 'push local 0', 'call Math.multiply 2',
                                 'pop local 0'])
@@ -180,6 +182,31 @@ class VMGeneratorTest(unittest.TestCase):
         code = generator.process_expression(node)
         self.assertEqual(code, ['push constant 1', 'push constant 2', 'add', 'push this 0', 'call Math.multiply 2'])
 
+    def test_process_array(self):
+        generator = VMGenerator()
+        generator.symbol_table.define('a', 'Array', KIND_FIELD)
+        generator.symbol_table.define('b', 'Array', KIND_FIELD)
+        generator.symbol_table.define('i', 'int', KIND_VAR)
+        generator.symbol_table.define('j', 'int', KIND_VAR)
+        # let a[i] = b[j];
+        node = Node('letStatement', None,
+                    [Node('keyword', 'let'), Node('identifier', 'a'), Node('symbol', '['),
+                     Node('expression', None, [Node('term', None, [Node('identifier', 'i')], 'single')]),
+                     Node('symbol', ']'),
+                     Node('symbol', '='),
+                     Node('expression', None,
+                          [Node('term', None,
+                                [Node('identifier', 'b'), Node('symbol', '['),
+                                 Node('expression', None, [Node('term', None, [Node('identifier', 'j')], 'single')]),
+                                 Node('symbol', ']')], 'var[exp]')]),
+                     Node('symbol', ';')
+                     ])
+        code = generator.process_let(node)
+        self.assertEqual(code, ['push this 0', 'push local 0', 'add',
+                                'push this 1', 'push local 1', 'add',
+                                'pop pointer 1', 'push that 0', 'pop temp 0',
+                                'pop pointer 1', 'push temp 0', 'pop that 0'])
+
     def test_process_term(self):
         generator = VMGenerator()
         exp1 = Node('expression', None)
@@ -212,6 +239,21 @@ class VMGeneratorTest(unittest.TestCase):
         self.assertEqual(generator.process_term(node),
                          ['push constant 1', 'push constant 2', 'add', 'push constant 1', 'push constant 2',
                           'call Math.multiply 2', 'call SquareGame.new 2'])
+
+    def test_process_string(self):
+        generator = VMGenerator()
+        node = Node('stringConstant', 'apple')
+        code = generator.process_string(node)
+        expected = ['push constant 5', 'call String.new 1',
+                    'push constant 97', 'call String.appendChar 2',
+                    'push constant 112', 'call String.appendChar 2',
+                    'push constant 112', 'call String.appendChar 2',
+                    'push constant 108', 'call String.appendChar 2',
+                    'push constant 101', 'call String.appendChar 2']
+        self.assertEqual(code, expected)
+        node = Node('term', None, [Node('stringConstant', 'apple')], 'single')
+        code = generator.process_term(node)
+        self.assertEqual(code, expected)
 
     def test_make_variable(self):
         generator = VMGenerator()
@@ -325,38 +367,38 @@ class VMGeneratorTest(unittest.TestCase):
                  [Node('keyword', 'return'),
                   Node('expression', None,
                        [
-                        Node('term', None,
-                             [Node('identifier', 'Math'), Node('symbol', '.'), Node('identifier', 'sqrt'),
-                              Node('symbol', '('),
-                              Node('expressionList', None,
-                                   [
-                                       Node('expression', None,
-                                            [Node('term', None, [
-                                                Node('symbol', '('),
-                                                Node('expression', None, [
-                                                    Node('term', None, [Node('identifier', 'dx')],
-                                                         'single'),
-                                                    Node('symbol', '*'),
-                                                    Node('term', None, [Node('identifier', 'dx')],
-                                                         'single')
-                                                ]),
-                                                Node('symbol', ')')
-                                            ], '(exp)'),
-                                             Node('symbol', '+'),
-                                             Node('term', None, [
-                                                 Node('symbol', '('),
-                                                 Node('expression', None, [
-                                                     Node('term', None, [Node('identifier', 'dy')],
-                                                          'single'),
-                                                     Node('symbol', '*'),
-                                                     Node('term', None, [Node('identifier', 'dy')],
-                                                          'single')
-                                                 ]),
-                                                 Node('symbol', ')')
-                                             ], '(exp)')]),
-                                   ], {'cnt': 1}),
-                              Node('symbol', ')')], 'a.b(exps)'),
-                        ]),
+                           Node('term', None,
+                                [Node('identifier', 'Math'), Node('symbol', '.'), Node('identifier', 'sqrt'),
+                                 Node('symbol', '('),
+                                 Node('expressionList', None,
+                                      [
+                                          Node('expression', None,
+                                               [Node('term', None, [
+                                                   Node('symbol', '('),
+                                                   Node('expression', None, [
+                                                       Node('term', None, [Node('identifier', 'dx')],
+                                                            'single'),
+                                                       Node('symbol', '*'),
+                                                       Node('term', None, [Node('identifier', 'dx')],
+                                                            'single')
+                                                   ]),
+                                                   Node('symbol', ')')
+                                               ], '(exp)'),
+                                                Node('symbol', '+'),
+                                                Node('term', None, [
+                                                    Node('symbol', '('),
+                                                    Node('expression', None, [
+                                                        Node('term', None, [Node('identifier', 'dy')],
+                                                             'single'),
+                                                        Node('symbol', '*'),
+                                                        Node('term', None, [Node('identifier', 'dy')],
+                                                             'single')
+                                                    ]),
+                                                    Node('symbol', ')')
+                                                ], '(exp)')]),
+                                      ], {'cnt': 1}),
+                                 Node('symbol', ')')], 'a.b(exps)'),
+                       ]),
                   Node('symbol', ';')])
         ])
         node = Node('subroutineDec', None,
