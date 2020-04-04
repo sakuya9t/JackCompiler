@@ -1,5 +1,6 @@
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
+
 from CompilationEngine import Node
 from VMGenerator import VMGenerator
 from constant import KIND_STATIC, KIND_ARGUMENT, KIND_FIELD, KIND_VAR
@@ -227,11 +228,12 @@ class VMGeneratorTest(unittest.TestCase):
     def test_make_function(self):
         generator = VMGenerator()
         generator.current_class = 'MyObject'
+        generator.symbol_table.define('this', 'MyObject', KIND_ARGUMENT)
         generator.symbol_table.define("a", "Object1", KIND_FIELD)
         generator.symbol_table.define("b", "Object2", KIND_STATIC)
-        self.assertEqual(generator.make_function('this', 'foo', 0), ['call MyObject.foo 0'])
-        self.assertEqual(generator.make_function('a', 'foo', 1), ['call Object1.foo 1'])
-        self.assertEqual(generator.make_function('b', 'foo', 2), ['call Object2.foo 2'])
+        self.assertEqual(generator.make_function('this', 'foo', 0), ['push argument 0', 'call MyObject.foo 1'])
+        self.assertEqual(generator.make_function('a', 'foo', 1), ['push this 0', 'call Object1.foo 2'])
+        self.assertEqual(generator.make_function('b', 'foo', 2), ['push static 0', 'call Object2.foo 3'])
         self.assertEqual(generator.make_function('Object3', 'foo', 3), ['call Object3.foo 3'])
 
     def test_constructor(self):
@@ -243,12 +245,14 @@ class VMGeneratorTest(unittest.TestCase):
         statements = Node('statements', None, [
             Node('letStatement', None,
                  [Node('keyword', 'let'), Node('identifier', 'x'), Node('symbol', '='),
-                  Node('expression', None, [Node('term', None, [Node('identifier', 'ax')], 'single')])
+                  Node('expression', None, [Node('term', None, [Node('identifier', 'ax')], 'single')]),
+                  Node('symbol', ';')
                   ]),
 
             Node('letStatement', None,
                  [Node('keyword', 'let'), Node('identifier', 'y'), Node('symbol', '='),
-                  Node('expression', None, [Node('term', None, [Node('identifier', 'ay')], 'single')])
+                  Node('expression', None, [Node('term', None, [Node('identifier', 'ay')], 'single')]),
+                  Node('symbol', ';')
                   ]),
 
             Node('letStatement', None,
@@ -256,7 +260,8 @@ class VMGeneratorTest(unittest.TestCase):
                   Node('expression', None, [Node('term', None, [Node('identifier', 'pointCount')], 'single'),
                                             Node('symbol', '+'),
                                             Node('term', None, [Node('integerConstant', '1')], 'single')
-                                            ])
+                                            ]),
+                  Node('symbol', ';')
                   ]),
             Node('returnStatement', None,
                  [Node('keyword', 'return'),
@@ -271,11 +276,102 @@ class VMGeneratorTest(unittest.TestCase):
                      Node('subroutineBody', None,
                           [Node('symbol', '{'), statements, Node('symbol', '}')])])
         code = generator.process_subroutine(node)
-        print(code)
-        self.assertEqual(code, ['function Point.new 0', 'push constant 2', 'call Memory.alloc 1', 'pop pointer 0',
+        self.assertEqual(code, ['function Point.new 0', 'push constant 3', 'call Memory.alloc 1', 'pop pointer 0',
                                 'push argument 0', 'pop this 0', 'push argument 1', 'pop this 1',
                                 'push static 0', 'push constant 1', 'add', 'pop static 0', 'push pointer 0',
                                 'return'])
+
+    def test_method_definition(self):
+        generator = VMGenerator()
+        generator.current_class = 'Point'
+        generator.symbol_table.define('x', 'int', KIND_FIELD)
+        generator.symbol_table.define('y', 'int', KIND_FIELD)
+        param_list = Node('parameterList', None, [Node('identifier', 'Point'), Node('identifier', 'other')])
+        var_declare = Node('varDec', None, [
+            Node('keyword', 'var'), Node('keyword', 'int'), Node('identifier', 'dx'), Node('symbol', ','),
+            Node('identifier', 'dy'), Node('symbol', ';')
+        ])
+        statements = Node('statements', None, [
+            # let dx = x - other.getx();
+            Node('letStatement', None,
+                 [Node('keyword', 'let'), Node('identifier', 'dx'),
+                  Node('symbol', '='),
+                  Node('expression', None,
+                       [Node('term', None, [Node('identifier', 'x')], 'single'),
+                        Node('symbol', '-'),
+                        Node('term', None,
+                             [Node('identifier', 'other'), Node('symbol', '.'), Node('identifier', 'getx'),
+                              Node('symbol', '('), Node('expressionList', None, [], {'cnt': 0}), Node('symbol', ')')],
+                             'a.b(exps)'),
+                        ]),
+                  Node('symbol', ';')
+                  ]),
+            # let dy = y - other.gety();
+            Node('letStatement', None,
+                 [Node('keyword', 'let'), Node('identifier', 'dy'),
+                  Node('symbol', '='),
+                  Node('expression', None,
+                       [Node('term', None, [Node('identifier', 'y')], 'single'),
+                        Node('symbol', '-'),
+                        Node('term', None,
+                             [Node('identifier', 'other'), Node('symbol', '.'), Node('identifier', 'gety'),
+                              Node('symbol', '('), Node('expressionList', None, [], {'cnt': 0}), Node('symbol', ')')],
+                             'a.b(exps)'),
+                        ]),
+                  Node('symbol', ';')
+                  ]),
+            # return Math.sqrt((dx * dx) + (dy * dy));
+            Node('returnStatement', None,
+                 [Node('keyword', 'return'),
+                  Node('expression', None,
+                       [
+                        Node('term', None,
+                             [Node('identifier', 'Math'), Node('symbol', '.'), Node('identifier', 'sqrt'),
+                              Node('symbol', '('),
+                              Node('expressionList', None,
+                                   [
+                                       Node('expression', None,
+                                            [Node('term', None, [
+                                                Node('symbol', '('),
+                                                Node('expression', None, [
+                                                    Node('term', None, [Node('identifier', 'dx')],
+                                                         'single'),
+                                                    Node('symbol', '*'),
+                                                    Node('term', None, [Node('identifier', 'dx')],
+                                                         'single')
+                                                ]),
+                                                Node('symbol', ')')
+                                            ], '(exp)'),
+                                             Node('symbol', '+'),
+                                             Node('term', None, [
+                                                 Node('symbol', '('),
+                                                 Node('expression', None, [
+                                                     Node('term', None, [Node('identifier', 'dy')],
+                                                          'single'),
+                                                     Node('symbol', '*'),
+                                                     Node('term', None, [Node('identifier', 'dy')],
+                                                          'single')
+                                                 ]),
+                                                 Node('symbol', ')')
+                                             ], '(exp)')]),
+                                   ], {'cnt': 1}),
+                              Node('symbol', ')')], 'a.b(exps)'),
+                        ]),
+                  Node('symbol', ';')])
+        ])
+        node = Node('subroutineDec', None,
+                    [Node('keyword', 'method'), Node('keyword', 'int'), Node('identifier', 'distance'),
+                     Node('symbol', '('), param_list, Node('symbol', ')'),
+                     Node('subroutineBody', None,
+                          [Node('symbol', '{'), var_declare, statements, Node('symbol', '}')])])
+        code = generator.process_subroutine(node)
+        print(code)
+        self.assertEqual(code, ['function Point.distance 2', 'push argument 0', 'pop pointer 0',
+                                'push this 0', 'push argument 1', 'call Point.getx 1', 'sub', 'pop local 0',
+                                'push this 1', 'push argument 1', 'call Point.gety 1', 'sub', 'pop local 1',
+                                'push local 0', 'push local 0', 'call Math.multiply 2',
+                                'push local 1', 'push local 1', 'call Math.multiply 2',
+                                'add', 'call Math.sqrt 1', 'return'])
 
 
 if __name__ == '__main__':

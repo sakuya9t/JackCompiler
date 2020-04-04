@@ -18,11 +18,11 @@ class SymbolTable:
     def define(self, name: str, type: str, kind: str):
         if kind in [KIND_STATIC, KIND_FIELD]:
             if name in self.class_table.keys():
-                raise ValueError('Duplicate Defination of variable {}.'.format(name))
+                raise ValueError('Duplicate Definition of variable {}.'.format(name))
             self.class_table[name] = {"type": type, "kind": kind, "id": self.__next_val(kind)}
         else:
             if name in self.subroutine_table.keys():
-                raise ValueError('Duplicate Defination of variable {}.'.format(name))
+                raise ValueError('Duplicate Definition of variable {}.'.format(name))
             self.subroutine_table[name] = {"type": type, "kind": kind, "id": self.__next_val(kind)}
 
     def var_count(self, kind):

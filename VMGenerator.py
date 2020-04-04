@@ -60,11 +60,14 @@ class VMGenerator:
         self.reset_seq()
         # method: this -> argument 0, function don't do this.
         subroutine_type = node.children[0].value
+        method_piece = []
         if subroutine_type == SUBROUTINE_METHOD:
             self.symbol_table.define(name='this', type=self.current_class, kind=KIND_ARGUMENT)
+            method_piece = ['push argument 0', 'pop pointer 0']
         subroutine_name = node.children[2].value
         func_label = '{}.{}'.format(self.current_class, subroutine_name)
-        arg_cnt = self.process_parameter_list(node.children[4])
+        self.process_parameter_list(node.children[4])
+        arg_cnt = len(self.symbol_table.class_table)
         constructor_piece = []
         if subroutine_type == SUBROUTINE_CONSTRUCTOR:
             self.symbol_table.define('this', self.current_class, KIND_POINTER)
@@ -73,7 +76,7 @@ class VMGenerator:
                                  write_pop('pointer 0')]
         body_code = self.process_subroutine_body(node.children[6])
         local_var_cnt = self.symbol_table.local_cnt()
-        code = [write_function(func_label, local_var_cnt)] + constructor_piece + body_code
+        code = [write_function(func_label, local_var_cnt)] + constructor_piece + method_piece + body_code
         return code
 
     def process_parameter_list(self, node: Node):
@@ -248,12 +251,16 @@ class VMGenerator:
         :param n_args: number of arguments
         :return: Class.Method formatted function
         """
-        if obj_name == 'this':
-            obj_name = self.current_class
-        elif self.symbol_table.is_variable(obj_name):
-            # TODO: handle object and Class type differently (need to put obj into this pointer)
+        code = []
+        if self.symbol_table.is_variable(obj_name):
+            kind = self.symbol_table.vm_kind_of(obj_name)
+            index = self.symbol_table.index_of(obj_name)
+            code.extend([write_push('{} {}'.format(kind, index))])
             obj_name = self.symbol_table.type_of(obj_name)
-        return [write_call('{}.{}'.format(obj_name, func_name), n_args)]
+            n_args += 1
+        # Class.func
+        code.extend([write_call('{}.{}'.format(obj_name, func_name), n_args)])
+        return code
 
     def make_label(self):
         """
